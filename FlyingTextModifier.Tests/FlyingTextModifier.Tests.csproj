@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <!-- Bibliothèques de Dalamud, au même endroit que pour le plugin. -->
+    <DalamudLibPath>$(AppData)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlyingTextModifier\FlyingTextModifier.csproj" />
+    <!-- Le plugin ne copie pas Dalamud à côté de sa DLL (le jeu le fournit) : les tests en ont besoin. -->
+    <Reference Include="Dalamud" HintPath="$(DalamudLibPath)Dalamud.dll" />
+    <Reference Include="Newtonsoft.Json" HintPath="$(DalamudLibPath)Newtonsoft.Json.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

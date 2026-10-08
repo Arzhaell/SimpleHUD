@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="FlyingTextModifier/FlyingTextModifier.csproj" />
+  <Project Path="FlyingTextModifier.Tests/FlyingTextModifier.Tests.csproj" />
+</Solution>
