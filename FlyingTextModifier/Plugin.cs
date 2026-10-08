@@ -24,11 +24,15 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
     [PluginService] internal static IFlyTextGui FlyTextGui { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
+    [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
 
     private readonly WindowSystem windowSystem = new("FlyingTextModifier");
     private readonly ConfigWindow configWindow;
     private readonly PlacementOverlay overlay;
+#if DEBUG
+    private readonly FlyTextDiagnostics diagnostics = new();
+#endif
 
     public Plugin()
     {
@@ -85,6 +89,9 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenMainUi -= configWindow.Toggle;
         windowSystem.RemoveAllWindows();
         Groups.Dispose();
+#if DEBUG
+        diagnostics.Dispose();
+#endif
     }
 
     public void ResetGroup(FlyTextGroup group)
