@@ -238,11 +238,17 @@ public class FlyTextLayoutTests
         Assert.Null(FlyTextLayout.SeparateBlock(FlyTextCategory.Status, FlyTextGroup.StatusDamage, PersonalLayout.HealingSeparate, true));
         Assert.Null(FlyTextLayout.SeparateBlock(FlyTextCategory.DamageTaken, FlyTextGroup.StatusDamage, PersonalLayout.AllSeparate, true));
 
-        // EXP et objets obtenus sont rangés avec les dégâts subis, la PM avec les soins : tous vont dans le cadre des autres.
+        // EXP et objets obtenus, rangés avec les dégâts subis, vont dans le cadre des autres ; la PM reste avec les soins.
         Assert.Equal(PersonalBlock.Other, FlyTextLayout.SeparateBlock(FlyTextCategory.Other, FlyTextGroup.StatusDamage, PersonalLayout.Grouped, true));
-        Assert.Equal(PersonalBlock.Other, FlyTextLayout.SeparateBlock(FlyTextCategory.Other, FlyTextGroup.Healing, PersonalLayout.AllSeparate, true));
+        Assert.Null(FlyTextLayout.SeparateBlock(FlyTextCategory.Other, FlyTextGroup.Healing, PersonalLayout.AllSeparate, true));
         Assert.Null(FlyTextLayout.SeparateBlock(FlyTextCategory.Other, FlyTextGroup.StatusDamage, PersonalLayout.AllSeparate, false));
         Assert.Null(FlyTextLayout.SeparateBlock(FlyTextCategory.Healing, FlyTextGroup.Healing, PersonalLayout.AllSeparate, true));
+
+        // Seul le bloc des statuts et dégâts subis a des cadres à part, à empiler chacun de son côté.
+        Assert.True(FlyTextLayout.HasSeparateBlocks(FlyTextGroup.StatusDamage, PersonalLayout.Grouped, true));
+        Assert.True(FlyTextLayout.HasSeparateBlocks(FlyTextGroup.StatusDamage, PersonalLayout.StatusSeparate, false));
+        Assert.False(FlyTextLayout.HasSeparateBlocks(FlyTextGroup.StatusDamage, PersonalLayout.HealingSeparate, false));
+        Assert.False(FlyTextLayout.HasSeparateBlocks(FlyTextGroup.Healing, PersonalLayout.AllSeparate, true));
     }
 
     [Fact]

@@ -28,8 +28,8 @@ Formerly "Flying Text Modifier" (up to version 1.1.0).
   The game only knows two blocks (healing; status effects and damage taken). To separate status effects, the plugin
   moves each status text one by one. When a text arrives, the game pushes down the others in its block to make room
   for it: the plugin cancels that push for texts in another frame, so each frame scrolls on its own.
-- **Other texts in their own frame** (checkbox): EXP, looted items, MP recovered, crafting and gathering get their own
-  frame, whatever the layout.
+- **Other texts in their own frame** (checkbox): EXP and looted items, which the game stacks with damage taken, get
+  their own frame, whatever the layout. MP recovered stays with healing.
 - **On the target**: your hits on the target. These texts always follow the target; you set their offset from it
   (the circle marks the target, or your character when there is none).
 - Drag a frame (hold Shift for fine moves): the yellow dot marks where the game places the texts. When you let go,

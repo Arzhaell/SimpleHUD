@@ -85,7 +85,7 @@ public sealed class Plugin : IDalamudPlugin
         PersonalBlock.StatusDamage => Loc.T("Status effects / damage taken", "Statuts / dégâts subis"),
         PersonalBlock.Status => Loc.T("Status effects", "Statuts"),
         PersonalBlock.HealingDamage => Loc.T("Healing / damage taken", "Soins / dégâts subis"),
-        PersonalBlock.Other => CategoryName(FlyTextCategory.Other),
+        PersonalBlock.Other => Loc.T("Other (EXP, items…)", "Autres (EXP, objets…)"),
         _ => Loc.T("Damage taken", "Dégâts subis"),
     };
 
@@ -163,7 +163,7 @@ public sealed class Plugin : IDalamudPlugin
             ShowTestTexts(FlyTextGroup.StatusDamage);
     }
 
-    /// <summary>Donne aux autres textes (EXP, PM, objets obtenus…) leur propre cadre, ou les remet dans les blocs du jeu.</summary>
+    /// <summary>Donne aux autres textes (EXP, objets obtenus…) leur propre cadre, ou les remet dans le bloc du jeu.</summary>
     public void SetSeparateOther(bool separate)
     {
         Configuration.SeparateOther = separate;
@@ -298,7 +298,7 @@ public sealed class Plugin : IDalamudPlugin
             ShowOtherTestTexts();
     }
 
-    /// <summary>Fait défiler sur le personnage des autres textes (EXP, PM).</summary>
+    /// <summary>Fait défiler sur le personnage des autres textes (EXP).</summary>
     public void ShowOtherTestTexts() => testTexts.ShowOthers();
 
     /// <summary>Fait défiler tes coups sur la cible actuelle. Faux s'il n'y a pas de cible.</summary>

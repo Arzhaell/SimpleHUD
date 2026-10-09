@@ -29,8 +29,8 @@ Anciennement « Flying Text Modifier » (jusqu'à la version 1.1.0).
   chaque texte de statut un par un. Quand un texte arrive, le jeu pousse vers le bas ceux de son bloc pour lui
   faire de la place : le plugin annule cette poussée pour les textes d'un autre cadre, et chaque cadre défile de son
   côté.
-- **Autres textes dans leur propre cadre** (case à cocher) : EXP, objets obtenus, PM récupérés, artisanat et
-  récolte ont leur cadre à part, quelle que soit la disposition.
+- **Autres textes dans leur propre cadre** (case à cocher) : l'EXP et les objets obtenus, que le jeu range avec les
+  dégâts subis, ont leur cadre à part, quelle que soit la disposition. Les PM récupérés restent avec les soins.
 - **Sur la cible** : tes coups sur la cible. Ces textes suivent toujours la cible ; on règle l'écart avec elle
   (le cercle marque la cible, ou ton personnage s'il n'y en a pas).
 - Fais glisser un cadre (Maj enfoncée : déplacement fin) : le point jaune marque l'endroit où le jeu place les

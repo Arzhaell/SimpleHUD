@@ -234,8 +234,7 @@ internal sealed unsafe class FlyTextNodes : IDisposable
     // textes, aux écarts mesurés sur l'empilement du jeu.
     private void Stack(FlyTextGroup group, List<Tracked> texts)
     {
-        var separate = configuration.SeparateOther
-            || (group == FlyTextGroup.StatusDamage && FlyTextLayout.SeparatesStatuses(configuration.Layout));
+        var separate = FlyTextLayout.HasSeparateBlocks(group, configuration.Layout, configuration.SeparateOther);
         var arriving = texts.Any(entry => entry.Arrived);
 
         float? pushedBelow = null;

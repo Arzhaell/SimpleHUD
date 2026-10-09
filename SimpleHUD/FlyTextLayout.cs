@@ -210,14 +210,25 @@ internal static class FlyTextLayout
     /// <summary>
     /// Cadre à part où le plugin déplace un texte du personnage, ou null s'il reste dans le bloc où le jeu le range.
     /// Les statuts (rangés par le jeu avec les dégâts subis) ont leur cadre dans certaines dispositions ; les autres
-    /// textes (EXP et objets obtenus, rangés avec les dégâts subis ; PM, avec les soins) quand l'option est cochée.
+    /// textes rangés avec les dégâts subis (EXP, objets obtenus) quand l'option est cochée. Ceux rangés avec les soins
+    /// (PM récupérés) y restent.
     /// </summary>
-    public static PersonalBlock? SeparateBlock(FlyTextCategory category, FlyTextGroup group, PersonalLayout layout, bool separateOther) => category switch
+    public static PersonalBlock? SeparateBlock(FlyTextCategory category, FlyTextGroup group, PersonalLayout layout, bool separateOther)
     {
-        FlyTextCategory.Status when group == FlyTextGroup.StatusDamage && SeparatesStatuses(layout) => PersonalBlock.Status,
-        FlyTextCategory.Other when separateOther => PersonalBlock.Other,
-        _ => null,
-    };
+        if (group != FlyTextGroup.StatusDamage)
+            return null;
+
+        return category switch
+        {
+            FlyTextCategory.Status when SeparatesStatuses(layout) => PersonalBlock.Status,
+            FlyTextCategory.Other when separateOther => PersonalBlock.Other,
+            _ => null,
+        };
+    }
+
+    /// <summary>Vrai si des textes de ce bloc du jeu ont leur propre cadre (le plugin empile alors chaque cadre à part).</summary>
+    public static bool HasSeparateBlocks(FlyTextGroup group, PersonalLayout layout, bool separateOther) =>
+        group == FlyTextGroup.StatusDamage && (separateOther || SeparatesStatuses(layout));
 
     /// <summary>Vrai si les statuts ont leur propre bloc (le jeu les range avec les dégâts : le plugin les sort un par un).</summary>
     public static bool SeparatesStatuses(PersonalLayout layout) => layout is PersonalLayout.StatusSeparate or PersonalLayout.AllSeparate;

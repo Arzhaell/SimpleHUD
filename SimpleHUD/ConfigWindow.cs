@@ -147,7 +147,7 @@ internal sealed class ConfigWindow : Window
         }
 
         var separateOther = plugin.Configuration.SeparateOther;
-        if (ImGui.Checkbox(Loc.T("Other texts in their own frame (EXP, MP, items…)", "Autres textes dans leur propre cadre (EXP, PM, objets…)"), ref separateOther))
+        if (ImGui.Checkbox(Loc.T("Other texts in their own frame (EXP, items…)", "Autres textes dans leur propre cadre (EXP, objets…)"), ref separateOther))
             plugin.SetSeparateOther(separateOther);
     }
 
