@@ -85,7 +85,7 @@ public sealed class Plugin : IDalamudPlugin
         PersonalBlock.StatusDamage => Loc.T("Status effects / damage taken", "Statuts / dégâts subis"),
         PersonalBlock.Status => Loc.T("Status effects", "Statuts"),
         PersonalBlock.HealingDamage => Loc.T("Healing / damage taken", "Soins / dégâts subis"),
-        PersonalBlock.Other => Loc.T("Other (EXP, items…)", "Autres (EXP, objets…)"),
+        PersonalBlock.Other => CategoryName(FlyTextCategory.Other),
         _ => Loc.T("Damage taken", "Dégâts subis"),
     };
 
@@ -205,7 +205,7 @@ public sealed class Plugin : IDalamudPlugin
         FlyTextCategory.Healing => Loc.T("Healing", "Soins"),
         FlyTextCategory.DamageTaken => Loc.T("Damage taken", "Dégâts subis"),
         FlyTextCategory.DamageDealt => Loc.T("Damage dealt", "Dégâts infligés"),
-        _ => Loc.T("Other (EXP, MP…)", "Autres (EXP, PM…)"),
+        _ => Loc.T("Other (EXP, items…)", "Autres (EXP, objets…)"),
     };
 
     /// <summary>Après un changement de taille : quelques textes de la famille pour voir le résultat.</summary>

@@ -145,7 +145,7 @@ public class FlyTextLayoutTests
     [InlineData(7, FlyTextCategory.DamageTaken)] // DamageCritDh
     [InlineData(10, FlyTextCategory.DamageTaken)] // Dodge
     [InlineData(14, FlyTextCategory.Other)] // Exp
-    [InlineData(22, FlyTextCategory.Other)] // MpRegen
+    [InlineData(22, FlyTextCategory.Healing)] // MpRegen : avec les soins
     [InlineData(50, FlyTextCategory.Other)] // LootedItem
     [InlineData(-1, FlyTextCategory.Other)]
     public void SortsTextsOnYouIntoFamilies(int kind, FlyTextCategory expected)

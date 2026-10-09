@@ -41,20 +41,20 @@ public enum PersonalBlock
     HealingDamage,
     Damage,
 
-    /// <summary>Autres textes (EXP, PM, objets obtenus…), quand ils sont à part.</summary>
+    /// <summary>Autres textes (EXP, objets obtenus…), quand ils sont à part.</summary>
     Other,
 }
 
 /// <summary>Familles de textes dont on peut régler la taille et l'affichage.</summary>
 public enum FlyTextCategory
 {
-    /// <summary>Tout le reste (expérience, PM, objets obtenus, artisanat…).</summary>
+    /// <summary>Tout le reste (expérience, objets obtenus, artisanat…).</summary>
     Other,
 
     /// <summary>Effets de statut gagnés, perdus, résistés…</summary>
     Status,
 
-    /// <summary>Soins (et PV absorbés).</summary>
+    /// <summary>Soins (et PV absorbés, PM récupérés).</summary>
     Healing,
 
     /// <summary>Dégâts sur toi, avec ratés et esquives.</summary>
@@ -210,8 +210,8 @@ internal static class FlyTextLayout
     /// <summary>
     /// Cadre à part où le plugin déplace un texte du personnage, ou null s'il reste dans le bloc où le jeu le range.
     /// Les statuts (rangés par le jeu avec les dégâts subis) ont leur cadre dans certaines dispositions ; les autres
-    /// textes rangés avec les dégâts subis (EXP, objets obtenus) quand l'option est cochée. Ceux rangés avec les soins
-    /// (PM récupérés) y restent.
+    /// textes rangés avec les dégâts subis (EXP, objets obtenus) quand l'option est cochée. Les textes rangés avec les
+    /// soins y restent.
     /// </summary>
     public static PersonalBlock? SeparateBlock(FlyTextCategory category, FlyTextGroup group, PersonalLayout layout, bool separateOther)
     {
@@ -311,8 +311,8 @@ internal static class FlyTextLayout
         // Buff, Debuff, DebuffNoEffect, BuffFading, DebuffFading, DebuffResisted, DebuffInvulnerable.
         12 or 13 or 37 or 38 or 39 or 41 or 48 => FlyTextCategory.Status,
 
-        // Healing, HealingCrit, HpDrain.
-        21 or 34 or 45 => FlyTextCategory.Healing,
+        // Healing, HealingCrit, HpDrain, MpRegen (PM récupérés : le jeu les range avec les soins).
+        21 or 34 or 45 or 22 => FlyTextCategory.Healing,
 
         // Auto-attaques et dégâts sur la durée (0-3), dégâts (4-7), raté/esquive (8-11), Invulnerable,
         // AutoAttackNoText3, coups critiques nommés, FullyResisted, HasNoEffect, Resist, Reflect, Reflected, CriticalHit4.

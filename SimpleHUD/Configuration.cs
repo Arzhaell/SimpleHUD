@@ -33,7 +33,7 @@ public class Configuration : IPluginConfiguration
     /// <summary>Position du bloc des statuts quand il est séparé, en fraction de l'écran (null tant qu'il ne l'a jamais été).</summary>
     public Vector2? StatusPosition { get; set; }
 
-    /// <summary>Les autres textes du personnage (EXP, PM, objets obtenus…) ont leur propre cadre.</summary>
+    /// <summary>Les autres textes du personnage (EXP, objets obtenus…) ont leur propre cadre.</summary>
     public bool SeparateOther { get; set; }
 
     /// <summary>Position du cadre des autres textes, en fraction de l'écran (null tant qu'il n'a jamais été à part).</summary>

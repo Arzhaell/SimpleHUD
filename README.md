@@ -37,9 +37,9 @@ Formerly "Flying Text Modifier" (up to version 1.1.0).
 - To the pixel: the "Flying text" tab of the plugin window gives X and Y for each frame, with − / + buttons
   (Ctrl+click: by 10).
 - Right-click a frame, or the ↺ button: back to the game's original position.
-- **Display and size**: for buffs / debuffs, healing, damage taken (on you), damage dealt (on your targets) and other
-  texts (EXP, MP…), the window lets you hide them or set their size, from 50% to 200% of the game's size. The
-  critical hit bounce is kept.
+- **Display and size**: for buffs / debuffs, healing (MP recovered included), damage taken (on you), damage dealt (on
+  your targets) and other texts (EXP, items…), the window lets you hide them or set their size, from 50% to 200% of
+  the game's size. The critical hit bounce is kept.
 - **Test all texts** scrolls every kind of text over your character: healing, critical healing, beneficial and
   detrimental status effects gained then lost (real game status effects, picked at random on each try), damage,
   critical hits, direct hits, auto-attacks, misses, EXP, MP…
