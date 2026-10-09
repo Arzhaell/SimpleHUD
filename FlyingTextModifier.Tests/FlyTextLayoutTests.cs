@@ -164,7 +164,20 @@ public class FlyTextLayoutTests
         Assert.Equal(2f, configuration.GetScale(FlyTextCategory.Status));
         Assert.Equal(0.5f, configuration.GetScale(FlyTextCategory.Healing));
         Assert.Equal(1f, configuration.GetScale(FlyTextCategory.Damage));
-        Assert.Equal(1f, configuration.GetScale(FlyTextCategory.Other));
+        Assert.Equal(1.5f, configuration.GetScale(FlyTextCategory.Other));
+    }
+
+    [Fact]
+    public void HidesOnlyTheChosenFamilies()
+    {
+        var configuration = new Configuration();
+        configuration.SetHidden(FlyTextCategory.Damage, true);
+        configuration.SetHidden(FlyTextCategory.Other, true);
+
+        Assert.True(configuration.IsHidden(FlyTextLayout.Categorize(4))); // Damage
+        Assert.True(configuration.IsHidden(FlyTextLayout.Categorize(14))); // Exp
+        Assert.False(configuration.IsHidden(FlyTextLayout.Categorize(12))); // Buff
+        Assert.False(configuration.IsHidden(FlyTextLayout.Categorize(21))); // Healing
     }
 
     [Fact]

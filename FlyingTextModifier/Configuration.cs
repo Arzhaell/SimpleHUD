@@ -28,14 +28,48 @@ public class Configuration : IPluginConfiguration
     public float StatusScale { get; set; } = 1f;
     public float HealingScale { get; set; } = 1f;
     public float DamageScale { get; set; } = 1f;
+    public float OtherScale { get; set; } = 1f;
+
+    // Familles de textes masquées.
+    public bool HideStatus { get; set; }
+    public bool HideHealing { get; set; }
+    public bool HideDamage { get; set; }
+    public bool HideOther { get; set; }
 
     public float GetScale(FlyTextCategory category) => category switch
     {
         FlyTextCategory.Status => StatusScale,
         FlyTextCategory.Healing => HealingScale,
         FlyTextCategory.Damage => DamageScale,
-        _ => 1f,
+        _ => OtherScale,
     };
+
+    public bool IsHidden(FlyTextCategory category) => category switch
+    {
+        FlyTextCategory.Status => HideStatus,
+        FlyTextCategory.Healing => HideHealing,
+        FlyTextCategory.Damage => HideDamage,
+        _ => HideOther,
+    };
+
+    public void SetHidden(FlyTextCategory category, bool hidden)
+    {
+        switch (category)
+        {
+            case FlyTextCategory.Status:
+                HideStatus = hidden;
+                break;
+            case FlyTextCategory.Healing:
+                HideHealing = hidden;
+                break;
+            case FlyTextCategory.Damage:
+                HideDamage = hidden;
+                break;
+            default:
+                HideOther = hidden;
+                break;
+        }
+    }
 
     public void SetScale(FlyTextCategory category, float scale)
     {
@@ -50,6 +84,9 @@ public class Configuration : IPluginConfiguration
                 break;
             case FlyTextCategory.Damage:
                 DamageScale = scale;
+                break;
+            default:
+                OtherScale = scale;
                 break;
         }
     }

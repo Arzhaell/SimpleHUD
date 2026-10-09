@@ -104,18 +104,19 @@ internal sealed class ConfigWindow : Window
         ImGui.EndTable();
     }
 
-    // Taille de chaque famille de textes, en % de celle du jeu. Au lâcher du curseur, quelques textes de test.
+    // Par famille de textes : affichée ou masquée, et taille en % de celle du jeu. Au lâcher du curseur, quelques textes de test.
     private void DrawScales()
     {
-        if (!ImGui.BeginTable("##Scales", 3, ImGuiTableFlags.SizingFixedFit))
+        if (!ImGui.BeginTable("##Scales", 4, ImGuiTableFlags.SizingFixedFit))
             return;
 
+        ImGui.TableSetupColumn(Loc.T("Texts", "Textes"));
+        ImGui.TableSetupColumn(Loc.T("Show", "Afficher"));
         ImGui.TableSetupColumn(Loc.T("Size", "Taille"));
-        ImGui.TableSetupColumn("%");
         ImGui.TableSetupColumn(string.Empty);
         ImGui.TableHeadersRow();
 
-        foreach (var category in Plugin.ScaledCategories)
+        foreach (var category in Plugin.Categories)
         {
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
@@ -123,6 +124,16 @@ internal sealed class ConfigWindow : Window
             ImGui.TextUnformatted(Plugin.CategoryName(category));
 
             ImGui.TableNextColumn();
+            var shown = !plugin.Configuration.IsHidden(category);
+            if (ImGui.Checkbox($"##Show{category}", ref shown))
+            {
+                plugin.Configuration.SetHidden(category, !shown);
+                plugin.Configuration.Save();
+            }
+
+            // Taille sans effet sur une famille masquée : curseur grisé.
+            ImGui.TableNextColumn();
+            ImGui.BeginDisabled(!shown);
             var percent = (int)MathF.Round(plugin.Configuration.GetScale(category) * 100);
             ImGui.SetNextItemWidth(244 * ImGuiHelpers.GlobalScale);
             if (ImGui.SliderInt($"##Scale{category}", ref percent, 50, 200, "%d %%"))
@@ -139,6 +150,8 @@ internal sealed class ConfigWindow : Window
                 plugin.Configuration.Save();
                 plugin.ShowScaleTest(category);
             }
+
+            ImGui.EndDisabled();
         }
 
         ImGui.EndTable();

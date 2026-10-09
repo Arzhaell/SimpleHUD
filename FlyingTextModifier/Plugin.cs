@@ -24,6 +24,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
     [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
     [PluginService] internal static IGameInteropProvider GameInterop { get; private set; } = null!;
+    [PluginService] internal static IFlyTextGui FlyTextGui { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
 
     private readonly WindowSystem windowSystem = new("FlyingTextModifier");
@@ -31,6 +32,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly PlacementOverlay overlay;
     private readonly TestTexts testTexts = new();
     private readonly FlyTextScaler scaler;
+    private readonly FlyTextHider hider;
 
     // La fenêtre s'ouvre avec l'éditeur d'ATH (pour les réglages au pixel) et se referme avec lui.
     private bool hudLayoutWasOpen;
@@ -45,6 +47,7 @@ public sealed class Plugin : IDalamudPlugin
         Loc.Update(Configuration.Language);
         Groups = new FlyTextGroups(Configuration);
         scaler = new FlyTextScaler(Configuration);
+        hider = new FlyTextHider(Configuration);
 
         configWindow = new ConfigWindow(this);
         overlay = new PlacementOverlay(this);
@@ -77,12 +80,16 @@ public sealed class Plugin : IDalamudPlugin
         FlyTextCategory.Status => Loc.T("Buffs / debuffs", "Buffs / débuffs"),
         FlyTextCategory.Healing => Loc.T("Healing", "Soins"),
         FlyTextCategory.Damage => Loc.T("Damage", "Dégâts"),
-        _ => Loc.T("Other", "Autres"),
+        _ => Loc.T("Other (EXP, MP…)", "Autres (EXP, PM…)"),
     };
 
     /// <summary>Après un changement de taille : quelques textes de la famille pour voir le résultat.</summary>
     public void ShowScaleTest(FlyTextCategory category)
     {
+        // Pas de texte de test pour les autres familles (expérience, PM…).
+        if (category == FlyTextCategory.Other)
+            return;
+
         if (category == FlyTextCategory.Healing)
         {
             ShowTestTexts(FlyTextGroup.Healing);
@@ -116,6 +123,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenConfigUi -= configWindow.Toggle;
         PluginInterface.UiBuilder.OpenMainUi -= configWindow.Toggle;
         windowSystem.RemoveAllWindows();
+        hider.Dispose();
         scaler.Dispose();
         Groups.Dispose();
 #if DEBUG
@@ -141,14 +149,18 @@ public sealed class Plugin : IDalamudPlugin
         foreach (var group in FlyTextLayout.Groups)
             Groups.Reset(group);
         Groups.TargetOffset = Vector2.Zero;
-        foreach (var category in ScaledCategories)
+        foreach (var category in Categories)
+        {
             Configuration.SetScale(category, 1f);
+            Configuration.SetHidden(category, false);
+        }
+
         Configuration.Save();
         ShowTestTexts();
     }
 
-    /// <summary>Familles dont la taille se règle dans la fenêtre.</summary>
-    public static readonly FlyTextCategory[] ScaledCategories = [FlyTextCategory.Status, FlyTextCategory.Healing, FlyTextCategory.Damage];
+    /// <summary>Familles dont la taille et l'affichage se règlent dans la fenêtre.</summary>
+    public static readonly FlyTextCategory[] Categories = [FlyTextCategory.Status, FlyTextCategory.Healing, FlyTextCategory.Damage, FlyTextCategory.Other];
 
     /// <summary>Fait défiler sur le personnage tous les types de textes des groupes donnés (tous si aucun).</summary>
     public void ShowTestTexts(params FlyTextGroup[] groups) =>
