@@ -46,7 +46,13 @@ internal sealed class ConfigWindow : Window
 
         ImGui.Spacing();
         if (ImGui.Button(Loc.T("Test all texts", "Tester tous les textes")))
+        {
             plugin.ShowTestTexts();
+            plugin.ShowTargetTestTexts();
+        }
+
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(Loc.T("Texts on the target need a target.", "Les textes sur la cible ont besoin d'une cible."));
         ImGui.SameLine();
         if (ImGui.Button(Loc.T("Reset all", "Tout réinitialiser")))
             plugin.ResetAll();

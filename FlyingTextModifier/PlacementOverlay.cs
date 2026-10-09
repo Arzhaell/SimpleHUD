@@ -78,7 +78,10 @@ internal sealed class PlacementOverlay
         if (frame.Delta is { } delta)
             plugin.Groups.TargetOffset = offset + (delta / screen);
         if (frame.Released)
+        {
             plugin.Configuration.Save();
+            plugin.ShowTargetTestTexts();
+        }
         if (frame.ResetRequested)
             plugin.ResetTarget();
     }

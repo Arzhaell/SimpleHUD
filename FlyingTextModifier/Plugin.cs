@@ -19,7 +19,6 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
     [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
     [PluginService] internal static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
-    [PluginService] internal static IFlyTextGui FlyTextGui { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
     [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
     [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
@@ -122,7 +121,10 @@ public sealed class Plugin : IDalamudPlugin
 
     /// <summary>Fait défiler sur le personnage tous les types de textes des groupes donnés (tous si aucun).</summary>
     public void ShowTestTexts(params FlyTextGroup[] groups) =>
-        testTexts.Show(groups.Length == 0 ? FlyTextLayout.Groups : groups);
+        testTexts.ShowOnPlayer(groups.Length == 0 ? FlyTextLayout.Groups : groups);
+
+    /// <summary>Fait défiler tes coups sur la cible actuelle. Faux s'il n'y a pas de cible.</summary>
+    public bool ShowTargetTestTexts() => testTexts.ShowOnTarget();
 
     public void SetLanguage(PluginLanguage language)
     {

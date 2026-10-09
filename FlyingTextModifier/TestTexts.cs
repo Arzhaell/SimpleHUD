@@ -1,100 +1,149 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Gui.FlyText;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 
 namespace FlyingTextModifier;
 
-/// <summary>Faux textes affichés sur le personnage pour voir où ils apparaissent, avec de vrais statuts du jeu.</summary>
-internal sealed class TestTexts
+/// <summary>
+/// Faux textes de test, créés comme ceux du combat (journal d'écran du personnage) : le jeu les range lui-même dans le
+/// bon groupe et les met en forme (nom et icône des statuts, nom de l'action, couleurs).
+/// </summary>
+internal sealed unsafe class TestTexts
 {
-    // Acteur 1 = le personnage du joueur.
-    private const uint LocalPlayer = 1;
+    // Feuille Action du jeu : 7541 = Second souffle (soin), 53 = Volée de coups (attaque).
+    private const uint HealingActionId = 7541;
+    private const uint AttackActionId = 53;
 
-    // Blanc opaque, quel que soit l'ordre des composantes attendu par le jeu.
-    private const uint Color = 0xFFFFFFFF;
+    // Type d'identifiant « action » dans le journal d'écran.
+    private const byte ActionKind = 1;
 
-    // Les textes partent les uns après les autres pour ne pas se chevaucher.
-    private static readonly TimeSpan Spacing = TimeSpan.FromMilliseconds(300);
+    // Les textes partent les uns après les autres : un groupe n'en affiche que 8 à la fois.
+    private static readonly TimeSpan Spacing = TimeSpan.FromMilliseconds(400);
 
     private readonly Random random = new();
-    private List<Status>? buffs;
-    private List<Status>? debuffs;
+    private uint[]? buffs;
+    private uint[]? debuffs;
 
-    private readonly record struct Status(string Name, uint Icon);
-
-    private readonly record struct Sample(FlyTextKind Kind, uint Value, string Text, uint Icon);
-
-    public void Show(IEnumerable<FlyTextGroup> groups)
+    private enum Recipient
     {
-        var samples = groups.SelectMany(Samples).ToList();
-        for (var i = 0; i < samples.Count; i++)
+        Player,
+        Target,
+    }
+
+    private readonly record struct Sample(FlyTextKind Kind, ScreenLogRelationKind Source, int Value, uint ActionId);
+
+    /// <summary>Tous les types de textes des groupes donnés, sur le personnage.</summary>
+    public void ShowOnPlayer(IEnumerable<FlyTextGroup> groups)
+    {
+        LoadStatuses();
+        foreach (var group in groups)
+            Schedule(Recipient.Player, group == FlyTextGroup.Healing ? HealingSamples() : StatusDamageSamples());
+    }
+
+    /// <summary>Tes coups sur la cible actuelle. Faux s'il n'y a pas de cible qui puisse en recevoir.</summary>
+    public bool ShowOnTarget()
+    {
+        if (Plugin.TargetManager.Target is not IBattleChara)
+            return false;
+
+        LoadStatuses();
+        Schedule(Recipient.Target, TargetSamples());
+        return true;
+    }
+
+    private static Sample[] HealingSamples() =>
+    [
+        new(FlyTextKind.Healing, ScreenLogRelationKind.LocalPlayer, 1234, HealingActionId),
+        new(FlyTextKind.HealingCrit, ScreenLogRelationKind.LocalPlayer, 2468, HealingActionId),
+    ];
+
+    // Statuts gagnés puis perdus (de vrais statuts tirés au hasard), puis toutes les sortes de dégâts subis.
+    private Sample[] StatusDamageSamples()
+    {
+        var gained = Pick(buffs!, 3);
+        var inflicted = Pick(debuffs!, 2);
+        return
+        [
+            .. gained.Select(id => Status(FlyTextKind.Buff, id)),
+            Status(FlyTextKind.BuffFading, gained[0]),
+            .. inflicted.Select(id => Status(FlyTextKind.Debuff, id)),
+            Status(FlyTextKind.DebuffFading, inflicted[0]),
+            Hit(FlyTextKind.Damage, ScreenLogRelationKind.Enemy, 1234),
+            Hit(FlyTextKind.DamageCrit, ScreenLogRelationKind.Enemy, 2345),
+            Hit(FlyTextKind.DamageDh, ScreenLogRelationKind.Enemy, 1456),
+            Hit(FlyTextKind.DamageCritDh, ScreenLogRelationKind.Enemy, 2789),
+            Hit(FlyTextKind.AutoAttackOrDot, ScreenLogRelationKind.Enemy, 321),
+            Hit(FlyTextKind.Miss, ScreenLogRelationKind.Enemy, 0),
+            Hit(FlyTextKind.Dodge, ScreenLogRelationKind.Enemy, 0),
+        ];
+    }
+
+    private Sample[] TargetSamples() =>
+    [
+        Hit(FlyTextKind.Damage, ScreenLogRelationKind.LocalPlayer, 1234),
+        Hit(FlyTextKind.DamageCrit, ScreenLogRelationKind.LocalPlayer, 2345),
+        Hit(FlyTextKind.DamageDh, ScreenLogRelationKind.LocalPlayer, 1456),
+        Hit(FlyTextKind.DamageCritDh, ScreenLogRelationKind.LocalPlayer, 2789),
+        Hit(FlyTextKind.AutoAttackOrDot, ScreenLogRelationKind.LocalPlayer, 321),
+        Hit(FlyTextKind.Miss, ScreenLogRelationKind.LocalPlayer, 0),
+        new(FlyTextKind.Debuff, ScreenLogRelationKind.LocalPlayer, (int)Pick(debuffs!, 1)[0], AttackActionId),
+    ];
+
+    // Pour un statut, la valeur est le numéro du statut dans la feuille Status du jeu.
+    private static Sample Status(FlyTextKind kind, uint statusId) => new(kind, ScreenLogRelationKind.LocalPlayer, (int)statusId, AttackActionId);
+
+    private static Sample Hit(FlyTextKind kind, ScreenLogRelationKind source, int damage) => new(kind, source, damage, AttackActionId);
+
+    private static void Schedule(Recipient recipient, Sample[] samples)
+    {
+        for (var i = 0; i < samples.Length; i++)
         {
             var sample = samples[i];
-            Plugin.Framework.RunOnTick(
-                () => Plugin.FlyTextGui.AddFlyText(sample.Kind, LocalPlayer, sample.Value, 0, sample.Text, string.Empty, Color, sample.Icon, 0),
-                Spacing * i);
+            Plugin.Framework.RunOnTick(() => Add(recipient, sample), Spacing * i);
         }
     }
 
-    private IEnumerable<Sample> Samples(FlyTextGroup group)
+    // Exécuté sur le fil du jeu : le personnage (ou la cible) est relu à ce moment-là, il a pu disparaître entre-temps.
+    private static void Add(Recipient recipient, Sample sample)
     {
-        if (group == FlyTextGroup.Healing)
+        IBattleChara? character = recipient == Recipient.Player ? Plugin.ObjectTable.LocalPlayer : Plugin.TargetManager.Target as IBattleChara;
+        if (character == null)
+            return;
+
+        var entry = new ScreenLogEntry
         {
-            var heal = Loc.T("Healing (test)", "Soin (test)");
-            return [new(FlyTextKind.Healing, 1234, heal, 0), new(FlyTextKind.HealingCrit, 2468, heal, 0)];
-        }
+            ScreenLogKind = (int)sample.Kind,
+            SourceRelation = sample.Source,
+            TargetRelation = recipient == Recipient.Player ? ScreenLogRelationKind.LocalPlayer : ScreenLogRelationKind.Enemy,
+            Option = (byte)ScreenLogOption.Default,
+            ActionKind = ActionKind,
+            ActionId = sample.ActionId,
+            Value1 = sample.Value,
+            Value3 = 1,
+        };
 
-        LoadStatuses();
-        var gained = Pick(buffs!, 3);
-        var inflicted = Pick(debuffs!, 2);
-        var hit = Loc.T("Attack (test)", "Attaque (test)");
-
-        // Statuts gagnés puis perdus, puis toutes les sortes de dégâts subis.
-        return gained.Select(s => new Sample(FlyTextKind.Buff, 0, s.Name, s.Icon))
-            .Append(new Sample(FlyTextKind.BuffFading, 0, gained[0].Name, gained[0].Icon))
-            .Concat(inflicted.Select(s => new Sample(FlyTextKind.Debuff, 0, s.Name, s.Icon)))
-            .Append(new Sample(FlyTextKind.DebuffFading, 0, inflicted[0].Name, inflicted[0].Icon))
-            .Concat(
-            [
-                new(FlyTextKind.Damage, 1234, hit, 0),
-                new(FlyTextKind.DamageCrit, 2345, hit, 0),
-                new(FlyTextKind.DamageDh, 1456, hit, 0),
-                new(FlyTextKind.DamageCritDh, 2789, hit, 0),
-                new(FlyTextKind.AutoAttackOrDot, 321, string.Empty, 0),
-                new(FlyTextKind.Miss, 0, hit, 0),
-                new(FlyTextKind.Dodge, 0, hit, 0),
-            ]);
+        var battleChara = (BattleChara*)character.Address;
+        ScreenLog.AddScreenLogEntry(&battleChara->ScreenLogManager, &entry);
     }
 
     // Tirés au hasard à chaque test, pour voir passer toutes sortes de statuts au fil des essais.
-    private Status[] Pick(List<Status> statuses, int count) =>
-        Enumerable.Range(0, count).Select(_ => statuses[random.Next(statuses.Count)]).ToArray();
+    private uint[] Pick(uint[] statuses, int count) =>
+        Enumerable.Range(0, count).Select(_ => statuses[random.Next(statuses.Length)]).ToArray();
 
-    // Statuts du jeu (dans sa langue) qui ont un nom et une icône : catégorie 1 = bénéfique, 2 = néfaste.
+    // Statuts du jeu qui ont un nom et une icône : catégorie 1 = bénéfique, 2 = néfaste.
     private void LoadStatuses()
     {
         if (buffs != null && debuffs != null)
             return;
 
-        buffs = [];
-        debuffs = [];
-        foreach (var status in Plugin.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Status>())
-        {
-            var name = status.Name.ExtractText();
-            if (status.Icon == 0 || string.IsNullOrWhiteSpace(name))
-                continue;
-
-            if (status.StatusCategory == 1)
-                buffs.Add(new Status(name, status.Icon));
-            else if (status.StatusCategory == 2)
-                debuffs.Add(new Status(name, status.Icon));
-        }
-
-        // Données illisibles : un texte générique suffit pour voir l'emplacement.
-        if (buffs.Count == 0)
-            buffs.Add(new Status(Loc.T("Status effect (test)", "Effet de statut (test)"), 0));
-        if (debuffs.Count == 0)
-            debuffs.Add(new Status(Loc.T("Status effect (test)", "Effet de statut (test)"), 0));
+        var sheet = Plugin.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Status>()
+            .Where(s => s.Icon != 0 && !s.Name.IsEmpty)
+            .ToList();
+        buffs = sheet.Where(s => s.StatusCategory == 1).Select(s => s.RowId).DefaultIfEmpty(0u).ToArray();
+        debuffs = sheet.Where(s => s.StatusCategory == 2).Select(s => s.RowId).DefaultIfEmpty(0u).ToArray();
     }
 }
