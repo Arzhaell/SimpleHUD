@@ -38,8 +38,8 @@ public class Configuration : IPluginConfiguration
     public float DamageScale { get; set; } = 1f;
     public float OtherScale { get; set; } = 1f;
 
-    /// <summary>Position de chaque élément de l'ATH du jeu affichée dans l'éditeur d'ATH.</summary>
-    public bool ShowHudPositions { get; set; } = true;
+    /// <summary>Dans l'éditeur d'ATH, position de tous les éléments, et pas seulement de celui sous la souris.</summary>
+    public bool ShowAllHudPositions { get; set; }
 
     // Familles de textes masquées.
     public bool HideStatus { get; set; }

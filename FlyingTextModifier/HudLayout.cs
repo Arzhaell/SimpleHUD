@@ -41,6 +41,45 @@ internal static class HudLayout
     }
 
     /// <summary>
+    /// Cadre sous la souris (en pixels du jeu), ou -1. Quand des cadres se chevauchent, le plus petit : c'est le plus
+    /// précis (un élément posé sur un plus grand).
+    /// </summary>
+    public static int FrameAt(IReadOnlyList<HudFrame> frames, Vector2 point)
+    {
+        var found = -1;
+        var foundArea = float.MaxValue;
+        for (var i = 0; i < frames.Count; i++)
+        {
+            var frame = frames[i];
+            if (point.X < frame.X || point.Y < frame.Y || point.X >= frame.X + frame.Width || point.Y >= frame.Y + frame.Height)
+                continue;
+
+            var area = (float)frame.Width * frame.Height;
+            if (area < foundArea)
+            {
+                found = i;
+                foundArea = area;
+            }
+        }
+
+        return found;
+    }
+
+    /// <summary>
+    /// Coin haut-gauche du panneau de réglage de l'élément sélectionné : juste sous son cadre, ou juste au-dessus s'il
+    /// n'y a pas la place en dessous. Toujours entier à l'écran.
+    /// </summary>
+    public static Vector2 PanelMin(Vector2 frameMin, Vector2 frameSize, Vector2 panelSize, Vector2 screenMin, Vector2 screenSize, float gap)
+    {
+        var panel = new Vector2(frameMin.X, frameMin.Y + frameSize.Y + gap);
+        if (panel.Y + panelSize.Y > screenMin.Y + screenSize.Y)
+            panel.Y = frameMin.Y - gap - panelSize.Y;
+
+        var max = Vector2.Max(screenMin, screenMin + screenSize - panelSize);
+        return Vector2.Clamp(panel, screenMin, max);
+    }
+
+    /// <summary>
     /// Place demandée pour le coin haut-gauche d'un cadre, gardée à l'écran : le cadre peut dépasser du bord (le jeu
     /// le permet, ex. infos du serveur à Y -1), mais il en reste toujours un morceau visible.
     /// </summary>

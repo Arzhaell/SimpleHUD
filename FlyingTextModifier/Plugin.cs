@@ -33,7 +33,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly TestTexts testTexts = new();
     private readonly FlyTextNodes nodes;
     private readonly FlyTextHider hider;
-    private readonly HudLabels hudLabels;
+    private readonly HudEditorOverlay hudOverlay;
     private readonly HudDiagnostics hudDiagnostics = new();
 
     // La fenêtre s'ouvre avec l'éditeur d'ATH (pour les réglages au pixel) et se referme avec lui.
@@ -56,7 +56,7 @@ public sealed class Plugin : IDalamudPlugin
         configWindow = new ConfigWindow(this);
         overlay = new PlacementOverlay(this);
         Hud = new HudFrames();
-        hudLabels = new HudLabels(this);
+        hudOverlay = new HudEditorOverlay(this);
         windowSystem.AddWindow(configWindow);
         PluginInterface.UiBuilder.Draw += OnDraw;
         PluginInterface.UiBuilder.OpenConfigUi += configWindow.Toggle;
@@ -225,6 +225,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenMainUi -= configWindow.Toggle;
         windowSystem.RemoveAllWindows();
         hider.Dispose();
+        hudOverlay.Dispose();
         Hud.Dispose();
         hudDiagnostics.Dispose();
         nodes.Dispose();
@@ -277,7 +278,7 @@ public sealed class Plugin : IDalamudPlugin
     private void OnDraw()
     {
         FollowHudLayout();
-        hudLabels.Draw();
+        hudOverlay.Draw();
         windowSystem.Draw();
         overlay.Draw();
     }

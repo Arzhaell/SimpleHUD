@@ -74,6 +74,61 @@ public class HudLayoutTests
     }
 
     [Fact]
+    public void FindsTheFrameUnderTheMouse()
+    {
+        HudFrame[] frames =
+        [
+            new("Équipe", 21, 738, 380, 420, false),
+            new("Barre de raccourcis 1", 964, 1227, 542, 54, false),
+        ];
+
+        Assert.Equal(1, HudLayout.FrameAt(frames, new Vector2(1000, 1250)));
+        Assert.Equal(-1, HudLayout.FrameAt(frames, new Vector2(700, 300)));
+
+        // Le bord droit et le bas ne font plus partie du cadre.
+        Assert.Equal(-1, HudLayout.FrameAt(frames, new Vector2(1506, 1250)));
+    }
+
+    [Fact]
+    public void PrefersTheSmallestOfOverlappingFrames()
+    {
+        // Liste d'alliance posée sur la liste d'équipe : la souris dessus vise la petite.
+        HudFrame[] frames =
+        [
+            new("Équipe", 21, 738, 380, 420, false),
+            new("Liste d'alliance 1", 30, 760, 194, 52, false),
+        ];
+
+        Assert.Equal(1, HudLayout.FrameAt(frames, new Vector2(100, 780)));
+    }
+
+    [Fact]
+    public void PutsThePanelUnderTheSelectedFrame()
+    {
+        var panel = HudLayout.PanelMin(new Vector2(964, 1227), new Vector2(542, 54), new Vector2(300, 90), Vector2.Zero, Screen, 6);
+
+        Assert.Equal(new Vector2(964, 1287), panel);
+    }
+
+    [Fact]
+    public void PutsThePanelAboveAFrameAtTheBottomOfTheScreen()
+    {
+        // Menu principal tout en bas : pas la place dessous.
+        var panel = HudLayout.PanelMin(new Vector2(1699, 1409), new Vector2(171, 27), new Vector2(300, 90), Vector2.Zero, Screen, 6);
+
+        Assert.Equal(new Vector2(1699, 1313), panel);
+    }
+
+    [Fact]
+    public void KeepsThePanelOnScreen()
+    {
+        // Infos du serveur, collées au bord droit : le panneau recule pour rester entier.
+        var panel = HudLayout.PanelMin(new Vector2(2310, -1), new Vector2(248, 28), new Vector2(300, 90), Vector2.Zero, Screen, 6);
+
+        Assert.Equal(new Vector2(2260, 33), panel);
+    }
+
+    [Fact]
     public void MovesByWholePixels()
     {
         Assert.Equal(new Vector2(36, -10), HudLayout.MoveDelta(new Vector2(964, 1227), new Vector2(1000, 1217)));

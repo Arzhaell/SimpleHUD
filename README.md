@@ -30,12 +30,12 @@ affichés sur ton personnage, directement depuis la **configuration de l'ATH**.
 - `/flytextmod` ouvre la fenêtre hors de l'éditeur d'ATH ; les cadres s'affichent tant qu'elle est ouverte.
 
 ### Positions de l'ATH du jeu (essai)
-- Dans la configuration de l'ATH, juste au-dessus du cadre de chaque élément (barres de raccourcis, équipe, cible,
-  boussole…, y compris ceux masqués en jeu), la position de son coin haut-gauche à l'écran, en pixels ; l'élément
-  sélectionné ressort en jaune.
-- **Au pixel près** : l'élément sélectionné dans l'éditeur se règle dans la fenêtre du plugin, section « Positions de
-  l'ATH du jeu » (X et Y, boutons − / +, Ctrl+clic : par 10 ; une case y masque les étiquettes). Il bouge comme si tu le faisais glisser : c'est le bouton « Sauvegarder » de l'éditeur qui
-  garde la nouvelle position, et fermer sans sauvegarder l'annule.
+- Dans la configuration de l'ATH, survole un élément (barres de raccourcis, équipe, cible, boussole…, y compris
+  ceux masqués en jeu) : juste au-dessus de son cadre s'affiche la position de son coin haut-gauche à l'écran, en
+  pixels. L'onglet « ATH du jeu » de la fenêtre du plugin peut les afficher toutes en même temps.
+- **Au pixel près** : sous l'élément sélectionné, un panneau donne X et Y (boutons − / +, Ctrl+clic : par 10). Il
+  bouge comme si tu le faisais glisser : c'est le bouton « Sauvegarder » de l'éditeur qui garde la nouvelle
+  position, et fermer sans sauvegarder l'annule.
 - Pour préparer le réglage au pixel, le plugin note dans le journal de Dalamud (lignes `[hud]`) ce que fait
   l'éditeur, seulement quand il est ouvert et que quelque chose change.
 
