@@ -127,6 +127,6 @@ public class HudLayoutTests
             new HudFrame("Liste des objectifs", 0, 46, 400, 120, false),
         ]);
 
-        Assert.Equal([46, 300], frames.Select(frame => frame.Y));
+        Assert.Equal([300, 46], frames.Select(frame => frame.Y));
     }
 }

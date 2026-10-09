@@ -86,43 +86,12 @@ internal sealed class ConfigWindow : Window
         if (frames.Length == 0)
         {
             ImGui.TextColored(ImGuiColors.DalamudGrey, Loc.T(
-                "Open the HUD layout editor to see where its elements are.",
-                "Ouvre la configuration de l'ATH pour voir la position de ses éléments."));
+                "Open the HUD layout editor to set its elements to the pixel.",
+                "Ouvre la configuration de l'ATH pour régler ses éléments au pixel."));
             return;
         }
 
         DrawSelectedHudFrame(frames);
-
-        // Une douzaine de lignes visibles, les autres en faisant défiler.
-        var scale = ImGuiHelpers.GlobalScale;
-        var rowHeight = ImGui.GetTextLineHeight() + (2 * ImGui.GetStyle().CellPadding.Y);
-        var size = new Vector2(460 * scale, (Math.Min(frames.Length, 12) + 1) * rowHeight);
-        if (!ImGui.BeginTable("##Hud", 3, ImGuiTableFlags.ScrollY | ImGuiTableFlags.RowBg, size))
-            return;
-
-        ImGui.TableSetupScrollFreeze(0, 1);
-        ImGui.TableSetupColumn(Loc.T("Element", "Élément"), ImGuiTableColumnFlags.WidthStretch);
-        ImGui.TableSetupColumn("X", ImGuiTableColumnFlags.WidthFixed, 60 * scale);
-        ImGui.TableSetupColumn("Y", ImGuiTableColumnFlags.WidthFixed, 60 * scale);
-        ImGui.TableHeadersRow();
-
-        // L'élément sélectionné dans l'éditeur d'ATH ressort en jaune, comme son étiquette.
-        foreach (var frame in frames)
-        {
-            ImGui.TableNextRow();
-            ImGui.TableNextColumn();
-            if (frame.Selected)
-                ImGui.TextColored(PlacementOverlay.Accent, frame.Name);
-            else
-                ImGui.TextUnformatted(frame.Name);
-
-            ImGui.TableNextColumn();
-            ImGui.TextUnformatted($"{frame.X}");
-            ImGui.TableNextColumn();
-            ImGui.TextUnformatted($"{frame.Y}");
-        }
-
-        ImGui.EndTable();
     }
 
     // Élément sélectionné dans l'éditeur d'ATH : X et Y au pixel (boutons − / +, Ctrl+clic par 10), comme les textes

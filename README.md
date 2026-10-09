@@ -33,10 +33,8 @@ affichés sur ton personnage, directement depuis la **configuration de l'ATH**.
 - Dans la configuration de l'ATH, juste au-dessus du cadre de chaque élément (barres de raccourcis, équipe, cible,
   boussole…, y compris ceux masqués en jeu), la position de son coin haut-gauche à l'écran, en pixels ; l'élément
   sélectionné ressort en jaune.
-- La fenêtre du plugin (section « Positions de l'ATH du jeu ») les liste tous par nom tant que l'éditeur est ouvert,
-  avec une case pour masquer les étiquettes.
-- **Au pixel près** : l'élément sélectionné dans l'éditeur se règle dans la fenêtre du plugin (X et Y, boutons − / +,
-  Ctrl+clic : par 10). Il bouge comme si tu le faisais glisser : c'est le bouton « Sauvegarder » de l'éditeur qui
+- **Au pixel près** : l'élément sélectionné dans l'éditeur se règle dans la fenêtre du plugin, section « Positions de
+  l'ATH du jeu » (X et Y, boutons − / +, Ctrl+clic : par 10 ; une case y masque les étiquettes). Il bouge comme si tu le faisais glisser : c'est le bouton « Sauvegarder » de l'éditeur qui
   garde la nouvelle position, et fermer sans sauvegarder l'annule.
 - Pour préparer le réglage au pixel, le plugin note dans le journal de Dalamud (lignes `[hud]`) ce que fait
   l'éditeur, seulement quand il est ouvert et que quelque chose change.

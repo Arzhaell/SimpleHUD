@@ -57,13 +57,10 @@ internal static class HudLayout
 
     /// <summary>
     /// Un cadre par élément : le jeu peut dessiner deux fois le même (cadre de la sélection par-dessus celui de
-    /// l'élément). Rangés par nom.
+    /// l'élément).
     /// </summary>
     public static HudFrame[] Merge(IEnumerable<HudFrame> frames) => frames
         .GroupBy(frame => (frame.Name, frame.X, frame.Y, frame.Width, frame.Height))
         .Select(same => same.First() with { Selected = same.Any(frame => frame.Selected) })
-        .OrderBy(frame => frame.Name, StringComparer.CurrentCultureIgnoreCase)
-        .ThenBy(frame => frame.Y)
-        .ThenBy(frame => frame.X)
         .ToArray();
 }
