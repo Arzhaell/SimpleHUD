@@ -1,3 +1,4 @@
+#if DEBUG
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -11,10 +12,9 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 namespace FlyingTextModifier;
 
 /// <summary>
-/// Branche d'essai : note dans le journal de Dalamud (lignes « [hud] ») ce que fait l'éditeur d'ATH du jeu, pour
-/// préparer le réglage au pixel. À l'ouverture de l'éditeur, l'état de chaque élément de la disposition ; pendant
-/// l'édition, l'élément sélectionné ; à la fermeture, les éléments qui ont changé. Lecture seule, et seulement quand
-/// l'éditeur est ouvert et que quelque chose change (les relevés des textes défilants restent réservés au Debug).
+/// Version de développement seulement : note dans le journal de Dalamud (lignes « [hud] ») ce que fait l'éditeur
+/// d'ATH du jeu. À l'ouverture de l'éditeur, l'état de chaque élément de la disposition et les nœuds de l'éditeur ;
+/// pendant l'édition, l'élément sélectionné ; à la fermeture, les éléments qui ont changé. Lecture seule.
 /// </summary>
 internal sealed unsafe class HudDiagnostics : IDisposable
 {
@@ -183,3 +183,4 @@ internal sealed unsafe class HudDiagnostics : IDisposable
         return "none";
     }
 }
+#endif

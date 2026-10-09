@@ -1,7 +1,8 @@
 # Flying Text Modifier
 
 Plugin [Dalamud](https://github.com/goatcorp/Dalamud) pour Final Fantasy XIV : déplace les **textes défilants**
-affichés sur ton personnage, directement depuis la **configuration de l'ATH**.
+affichés sur ton personnage, directement depuis la **configuration de l'ATH**, et y règle au pixel près tous les
+éléments de l'ATH du jeu.
 
 ## Utilisation
 - Ouvre la configuration de l'ATH : les cadres « Texte défilant » apparaissent par-dessus l'éditeur, avec la
@@ -29,15 +30,14 @@ affichés sur ton personnage, directement depuis la **configuration de l'ATH**.
   dégâts, critiques, coups directs, auto-attaques, esquives…
 - `/flytextmod` ouvre la fenêtre hors de l'éditeur d'ATH ; les cadres s'affichent tant qu'elle est ouverte.
 
-### Positions de l'ATH du jeu (essai)
+### ATH du jeu au pixel
 - Dans la configuration de l'ATH, survole un élément (barres de raccourcis, équipe, cible, boussole…, y compris
   ceux masqués en jeu) : juste au-dessus de son cadre s'affiche la position de son coin haut-gauche à l'écran, en
   pixels. L'onglet « ATH du jeu » de la fenêtre du plugin peut les afficher toutes en même temps.
 - **Au pixel près** : sous l'élément sélectionné, un panneau donne X et Y (boutons − / +, Ctrl+clic : par 10). Il
   bouge comme si tu le faisais glisser : c'est le bouton « Sauvegarder » de l'éditeur qui garde la nouvelle
   position, et fermer sans sauvegarder l'annule.
-- Pour préparer le réglage au pixel, le plugin note dans le journal de Dalamud (lignes `[hud]`) ce que fait
-  l'éditeur, seulement quand il est ouvert et que quelque chose change.
+- La version Debug note en plus dans le journal de Dalamud (lignes `[hud]`) ce que fait l'éditeur d'ATH.
 
 Les positions sont enregistrées en proportion de l'écran : elles suivent un changement de résolution.
 Quand le plugin est désactivé, les textes reprennent leur place d'origine.

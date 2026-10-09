@@ -34,13 +34,13 @@ public sealed class Plugin : IDalamudPlugin
     private readonly FlyTextNodes nodes;
     private readonly FlyTextHider hider;
     private readonly HudEditorOverlay hudOverlay;
-    private readonly HudDiagnostics hudDiagnostics = new();
 
     // La fenêtre s'ouvre avec l'éditeur d'ATH (pour les réglages au pixel) et se referme avec lui.
     private bool hudLayoutWasOpen;
     private bool openedWithHudLayout;
 #if DEBUG
     private readonly FlyTextDiagnostics diagnostics = new();
+    private readonly HudDiagnostics hudDiagnostics = new();
 #endif
 
     public Plugin()
@@ -227,11 +227,11 @@ public sealed class Plugin : IDalamudPlugin
         hider.Dispose();
         hudOverlay.Dispose();
         Hud.Dispose();
-        hudDiagnostics.Dispose();
         nodes.Dispose();
         Groups.Dispose();
 #if DEBUG
         diagnostics.Dispose();
+        hudDiagnostics.Dispose();
 #endif
     }
 

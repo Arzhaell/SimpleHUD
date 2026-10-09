@@ -115,7 +115,9 @@ internal sealed unsafe class HudFrames : IDisposable
         if (delta == Vector2.Zero)
             return;
 
+#if DEBUG
         var unitFrom = new Vector2(unit->X, unit->Y);
+#endif
         overlay->SetPositionFloat(overlay->X + delta.X, overlay->Y + delta.Y);
         unit->SetPosition((short)(unit->X + delta.X), (short)(unit->Y + delta.Y));
         info->PositionHasChanged = 1;
@@ -123,9 +125,11 @@ internal sealed unsafe class HudFrames : IDisposable
         if (agent != null)
             agent->NeedToSave = true;
 
+#if DEBUG
         Plugin.Log.Information(
             "[hud] move {Name} frame ({FromX},{FromY}) -> ({ToX},{ToY}) unit ({UnitX},{UnitY}) -> ({NewX},{NewY})",
             name, current.X, current.Y, target.X, target.Y, unitFrom.X, unitFrom.Y, unit->X, unit->Y);
+#endif
     }
 
     private static HudFrame[] Read(AddonHudLayoutScreen* screen)
