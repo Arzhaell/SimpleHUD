@@ -52,6 +52,11 @@ internal sealed unsafe class HudDiagnostics : IDisposable
 
             atOpening = snapshot;
             lastSelected = string.Empty;
+            if (open)
+            {
+                var lines = 0;
+                LogNodes(screen->RootNode, 0, ref lines);
+            }
         }
 
         if (open)
@@ -111,6 +116,23 @@ internal sealed unsafe class HudDiagnostics : IDisposable
         return lines;
     }
 
+    // Nœuds de l'éditeur (les cadres des éléments et le reste), une fois à l'ouverture.
+    private static void LogNodes(AtkResNode* node, int depth, ref int lines)
+    {
+        for (; node != null && lines < 400; node = node->PrevSiblingNode)
+        {
+            lines++;
+            var isComponent = (ushort)node->Type >= 1000;
+            var text = isComponent ? HudFrames.TextOf(((AtkComponentNode*)node)->Component) : string.Empty;
+            Plugin.Log.Information(
+                "[hud] node {Depth} #{Id} type={Type} pos=({X:F1},{Y:F1}) screen=({ScreenX:F1},{ScreenY:F1}) size={Width}x{Height} scale={Scale:F2} visible={Visible} children={Children} text={Text}",
+                depth, node->NodeId, (ushort)node->Type, node->X, node->Y, node->ScreenX, node->ScreenY,
+                node->Width, node->Height, node->ScaleX, node->IsVisible(), node->ChildCount, text);
+            if (!isComponent && depth < 8)
+                LogNodes(node->ChildNode, depth + 1, ref lines);
+        }
+    }
+
     // Élément sélectionné : addon, cadre de l'éditeur, valeur enregistrée et état « à enregistrer ».
     private void LogSelected(AddonHudLayoutScreen* screen)
     {
@@ -121,7 +143,8 @@ internal sealed unsafe class HudDiagnostics : IDisposable
             var unit = info->SelectedAtkUnit;
             var overlay = screen->SelectedOverlayNode;
             var agent = AgentHUDLayout.Instance();
-            line = $"selected={unit->NameString} pos=({unit->X},{unit->Y}) scale={unit->Scale:F2}"
+            line = $"selected={unit->NameString} info=+0x{(nint)info - (nint)screen:X} overlayText={(overlay == null ? "" : HudFrames.TextOf(overlay->Component))}"
+                + $" pos=({unit->X},{unit->Y}) scale={unit->Scale:F2}"
                 + $" offset=({info->XOffset},{info->YOffset}) overlaySize={info->OverlayWidth}x{info->OverlayHeight}"
                 + $" slot={info->Slot} changed={info->PositionHasChanged} flags={info->Flags:X}"
                 + $" overlay={(overlay == null ? "none" : $"({overlay->AtkResNode.X:F1},{overlay->AtkResNode.Y:F1}) {overlay->AtkResNode.Width}x{overlay->AtkResNode.Height}")}"

@@ -4,7 +4,7 @@ using Dalamud.Interface.Utility;
 
 namespace FlyingTextModifier;
 
-/// <summary>Dans l'éditeur d'ATH du jeu : la position de chaque élément, écrite dans son coin haut-gauche.</summary>
+/// <summary>Dans l'éditeur d'ATH du jeu : au-dessus du cadre de chaque élément, la position de son coin haut-gauche.</summary>
 internal sealed class HudLabels
 {
     private static readonly Vector4 Text = new(0.85f, 0.9f, 1f, 1f);
@@ -16,7 +16,7 @@ internal sealed class HudLabels
 
     public void Draw()
     {
-        if (!plugin.HudLayoutOpen || !plugin.Configuration.ShowHudPositions)
+        if (!plugin.Configuration.ShowHudPositions)
             return;
 
         var viewport = ImGuiHelpers.MainViewport;
@@ -25,16 +25,17 @@ internal sealed class HudLabels
 
         // Sous les fenêtres du plugin (cadres des textes défilants), par-dessus le jeu.
         var drawList = ImGui.GetBackgroundDrawList();
-        foreach (var element in plugin.Hud.Elements)
+        foreach (var frame in plugin.Hud.Frames)
         {
-            var text = HudLayout.Coordinates(element.X, element.Y);
+            var text = HudLayout.Coordinates(frame.X, frame.Y);
             var size = ImGui.CalcTextSize(text) + (padding * 2);
-            var min = HudLayout.LabelMin(viewport.Pos + new Vector2(element.X, element.Y), size, viewport.Pos, viewport.Size);
+            var frameMin = viewport.Pos + new Vector2(frame.X, frame.Y);
+            var min = HudLayout.LabelMin(frameMin, new Vector2(frame.Width, frame.Height), size, viewport.Pos, viewport.Size);
             var max = min + size;
             drawList.AddRectFilled(min, max, ImGui.GetColorU32(Background), 3f * scale);
-            if (element.Selected)
+            if (frame.Selected)
                 drawList.AddRect(min, max, ImGui.GetColorU32(PlacementOverlay.Accent), 3f * scale, ImDrawFlags.None, 1.5f * scale);
-            drawList.AddText(min + padding, ImGui.GetColorU32(element.Selected ? PlacementOverlay.Accent : Text), text);
+            drawList.AddText(min + padding, ImGui.GetColorU32(frame.Selected ? PlacementOverlay.Accent : Text), text);
         }
     }
 }

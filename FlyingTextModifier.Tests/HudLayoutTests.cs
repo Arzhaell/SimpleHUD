@@ -35,31 +35,70 @@ public class HudLayoutTests
         Assert.Equal("X 1280  ·  Y -4", HudLayout.Coordinates(1280, -4));
     }
 
-    [Fact]
-    public void PutsTheLabelInTheElementCorner()
-    {
-        var label = HudLayout.LabelMin(new Vector2(300, 200), new Vector2(120, 20), Vector2.Zero, new Vector2(2560, 1440));
+    private static readonly Vector2 Screen = new(2560, 1440);
+    private static readonly Vector2 Label = new(120, 20);
 
-        Assert.Equal(new Vector2(300, 200), label);
+    [Fact]
+    public void PutsTheLabelJustAboveTheFrameCorner()
+    {
+        var label = HudLayout.LabelMin(new Vector2(964, 1227), new Vector2(542, 54), Label, Vector2.Zero, Screen);
+
+        Assert.Equal(new Vector2(964, 1207), label);
+    }
+
+    [Fact]
+    public void PutsTheLabelBelowAFrameAtTheTopOfTheScreen()
+    {
+        var label = HudLayout.LabelMin(new Vector2(731, 1), new Vector2(125, 29), Label, Vector2.Zero, Screen);
+
+        Assert.Equal(new Vector2(731, 30), label);
     }
 
     [Fact]
     public void KeepsTheLabelOnScreen()
     {
-        var screen = new Vector2(2560, 1440);
-        var size = new Vector2(120, 20);
-
-        // Élément qui dépasse en haut à gauche, puis en bas à droite.
-        Assert.Equal(Vector2.Zero, HudLayout.LabelMin(new Vector2(-30, -10), size, Vector2.Zero, screen));
-        Assert.Equal(new Vector2(2440, 1420), HudLayout.LabelMin(new Vector2(2500, 1430), size, Vector2.Zero, screen));
+        // Cadre qui dépasse à gauche, puis tout à droite.
+        Assert.Equal(new Vector2(0, 180), HudLayout.LabelMin(new Vector2(-30, 200), new Vector2(100, 50), Label, Vector2.Zero, Screen));
+        Assert.Equal(new Vector2(2440, 1380), HudLayout.LabelMin(new Vector2(2500, 1400), new Vector2(60, 40), Label, Vector2.Zero, Screen));
     }
 
     [Fact]
     public void FollowsTheGameWindowOnTheDesktop()
     {
-        // Fenêtre du jeu décalée sur le bureau : l'étiquette reste dans la fenêtre.
+        // Fenêtre du jeu décalée sur le bureau : le haut de l'écran est celui de la fenêtre.
         var origin = new Vector2(100, 50);
 
-        Assert.Equal(origin, HudLayout.LabelMin(new Vector2(0, 0), new Vector2(120, 20), origin, new Vector2(1920, 1080)));
+        var label = HudLayout.LabelMin(origin, new Vector2(200, 40), Label, origin, new Vector2(1920, 1080));
+
+        Assert.Equal(new Vector2(100, 90), label);
+    }
+
+    [Fact]
+    public void KeepsOneFramePerElement()
+    {
+        // Le cadre de la sélection est dessiné par-dessus celui de l'élément : un seul reste, marqué sélectionné.
+        var frames = HudLayout.Merge(
+        [
+            new HudFrame("Barre de raccourcis 1", 964, 1227, 542, 54, false),
+            new HudFrame("Équipe", 21, 716, 380, 408, false),
+            new HudFrame("Barre de raccourcis 1", 964, 1227, 542, 54, true),
+        ]);
+
+        Assert.Equal(2, frames.Length);
+        Assert.Equal(new HudFrame("Barre de raccourcis 1", 964, 1227, 542, 54, true), frames[0]);
+        Assert.Equal("Équipe", frames[1].Name);
+    }
+
+    [Fact]
+    public void KeepsTwoElementsWithTheSameName()
+    {
+        // Le jeu a deux « Liste des objectifs » : deux cadres à des places différentes restent séparés.
+        var frames = HudLayout.Merge(
+        [
+            new HudFrame("Liste des objectifs", 0, 300, 400, 120, false),
+            new HudFrame("Liste des objectifs", 0, 46, 400, 120, false),
+        ]);
+
+        Assert.Equal([46, 300], frames.Select(frame => frame.Y));
     }
 }

@@ -1,10 +1,14 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
 namespace FlyingTextModifier;
 
 /// <summary>
-/// Rangement des éléments de l'ATH dans les dispositions du jeu. Chaque disposition (4 en tout) garde un emplacement
-/// par élément de la feuille « Hud » du jeu (112 éléments), dans le même ordre, les dispositions l'une après l'autre.
+/// Rangement des éléments de l'ATH dans les dispositions du jeu, et placement des étiquettes dans l'éditeur.
+/// Chaque disposition (4 en tout) a le même nombre d'emplacements (112), dans un ordre propre au jeu (constaté :
+/// ce n'est pas celui de la feuille « Hud »), les dispositions l'une après l'autre.
 /// Ce fichier ne contient que de la logique pure, testable sans le jeu.
 /// </summary>
 internal static class HudLayout
@@ -19,16 +23,32 @@ internal static class HudLayout
         return index < entryCount ? index : -1;
     }
 
-    /// <summary>Texte de l'étiquette d'un élément : sa position à l'écran, en pixels.</summary>
+    /// <summary>Texte de l'étiquette d'un cadre : la position de son coin haut-gauche à l'écran, en pixels.</summary>
     public static string Coordinates(int x, int y) => $"X {x}  ·  Y {y}";
 
     /// <summary>
-    /// Coin haut-gauche de l'étiquette d'un élément : dans son coin haut-gauche, mais toujours entière à l'écran
-    /// (un élément peut dépasser du bord).
+    /// Coin haut-gauche de l'étiquette d'un cadre : juste au-dessus de son coin haut-gauche, pour ne pas cacher le nom
+    /// que le jeu écrit dans le cadre ; juste en dessous si le cadre touche le haut de l'écran. Toujours entière à l'écran.
     /// </summary>
-    public static Vector2 LabelMin(Vector2 elementMin, Vector2 labelSize, Vector2 screenMin, Vector2 screenSize)
+    public static Vector2 LabelMin(Vector2 frameMin, Vector2 frameSize, Vector2 labelSize, Vector2 screenMin, Vector2 screenSize)
     {
+        var label = new Vector2(frameMin.X, frameMin.Y - labelSize.Y);
+        if (label.Y < screenMin.Y)
+            label.Y = frameMin.Y + frameSize.Y;
+
         var max = Vector2.Max(screenMin, screenMin + screenSize - labelSize);
-        return Vector2.Clamp(elementMin, screenMin, max);
+        return Vector2.Clamp(label, screenMin, max);
     }
+
+    /// <summary>
+    /// Un cadre par élément : le jeu peut dessiner deux fois le même (cadre de la sélection par-dessus celui de
+    /// l'élément). Rangés par nom.
+    /// </summary>
+    public static HudFrame[] Merge(IEnumerable<HudFrame> frames) => frames
+        .GroupBy(frame => (frame.Name, frame.X, frame.Y, frame.Width, frame.Height))
+        .Select(same => same.First() with { Selected = same.Any(frame => frame.Selected) })
+        .OrderBy(frame => frame.Name, StringComparer.CurrentCultureIgnoreCase)
+        .ThenBy(frame => frame.Y)
+        .ThenBy(frame => frame.X)
+        .ToArray();
 }

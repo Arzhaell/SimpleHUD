@@ -55,7 +55,7 @@ public sealed class Plugin : IDalamudPlugin
 
         configWindow = new ConfigWindow(this);
         overlay = new PlacementOverlay(this);
-        Hud = new HudElements(() => IsPlacing);
+        Hud = new HudFrames();
         hudLabels = new HudLabels(this);
         windowSystem.AddWindow(configWindow);
         PluginInterface.UiBuilder.Draw += OnDraw;
@@ -70,11 +70,8 @@ public sealed class Plugin : IDalamudPlugin
 
     internal FlyTextGroups Groups { get; }
 
-    /// <summary>Position des éléments de l'ATH du jeu (lecture seule).</summary>
-    internal HudElements Hud { get; }
-
-    /// <summary>Vrai tant que l'éditeur d'ATH du jeu est ouvert.</summary>
-    public bool HudLayoutOpen => hudLayoutWasOpen;
+    /// <summary>Cadres des éléments de l'ATH dans l'éditeur du jeu (lecture seule).</summary>
+    internal HudFrames Hud { get; }
 
     /// <summary>Les cadres sont affichés dans l'éditeur d'ATH, et tant que la fenêtre du plugin est ouverte.</summary>
     public bool IsPlacing => configWindow.IsOpen || hudLayoutWasOpen;

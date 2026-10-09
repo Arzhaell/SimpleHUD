@@ -68,7 +68,8 @@ internal sealed class ConfigWindow : Window
         DrawLanguage();
     }
 
-    // Positions des éléments de l'ATH du jeu (lecture seule) : coin haut-gauche de chaque élément affiché, en pixels.
+    // Positions des éléments de l'ATH du jeu (lecture seule) : coin haut-gauche du cadre de chaque élément dans
+    // l'éditeur d'ATH, en pixels.
     private void DrawHud()
     {
         if (!ImGui.CollapsingHeader(Loc.T("Game HUD positions", "Positions de l'ATH du jeu")))
@@ -81,17 +82,19 @@ internal sealed class ConfigWindow : Window
             plugin.Configuration.Save();
         }
 
-        var elements = plugin.Hud.Elements;
-        if (elements.Length == 0)
+        var frames = plugin.Hud.Frames;
+        if (frames.Length == 0)
         {
-            ImGui.TextColored(ImGuiColors.DalamudGrey, Loc.T("No HUD element on screen.", "Aucun élément de l'ATH à l'écran."));
+            ImGui.TextColored(ImGuiColors.DalamudGrey, Loc.T(
+                "Open the HUD layout editor to see where its elements are.",
+                "Ouvre la configuration de l'ATH pour voir la position de ses éléments."));
             return;
         }
 
         // Une douzaine de lignes visibles, les autres en faisant défiler.
         var scale = ImGuiHelpers.GlobalScale;
         var rowHeight = ImGui.GetTextLineHeight() + (2 * ImGui.GetStyle().CellPadding.Y);
-        var size = new Vector2(460 * scale, (Math.Min(elements.Length, 12) + 1) * rowHeight);
+        var size = new Vector2(460 * scale, (Math.Min(frames.Length, 12) + 1) * rowHeight);
         if (!ImGui.BeginTable("##Hud", 3, ImGuiTableFlags.ScrollY | ImGuiTableFlags.RowBg, size))
             return;
 
@@ -102,19 +105,19 @@ internal sealed class ConfigWindow : Window
         ImGui.TableHeadersRow();
 
         // L'élément sélectionné dans l'éditeur d'ATH ressort en jaune, comme son étiquette.
-        foreach (var element in elements)
+        foreach (var frame in frames)
         {
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
-            if (element.Selected)
-                ImGui.TextColored(PlacementOverlay.Accent, element.Name);
+            if (frame.Selected)
+                ImGui.TextColored(PlacementOverlay.Accent, frame.Name);
             else
-                ImGui.TextUnformatted(element.Name);
+                ImGui.TextUnformatted(frame.Name);
 
             ImGui.TableNextColumn();
-            ImGui.TextUnformatted($"{element.X}");
+            ImGui.TextUnformatted($"{frame.X}");
             ImGui.TableNextColumn();
-            ImGui.TextUnformatted($"{element.Y}");
+            ImGui.TextUnformatted($"{frame.Y}");
         }
 
         ImGui.EndTable();
