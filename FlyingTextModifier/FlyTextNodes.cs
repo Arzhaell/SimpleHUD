@@ -53,6 +53,11 @@ internal sealed unsafe class FlyTextNodes : IDisposable
         public Vector2 GamePosition;
         public Vector2? WrittenPosition;
         public Vector2 AppliedShift;
+
+#if DEBUG
+        // Relevé : nombre de lignes déjà notées pour ce texte.
+        public int Logged;
+#endif
     }
 
     public FlyTextNodes(Configuration configuration, FlyTextGroups groups)
@@ -66,13 +71,21 @@ internal sealed unsafe class FlyTextNodes : IDisposable
         addHook.Enable();
         createHook.Enable();
         Plugin.AddonLifecycle.RegisterListener(AddonEvent.PreDraw, AddonName, OnAddonPreDraw);
+        Plugin.AddonLifecycle.RegisterListener(AddonEvent.PostDraw, AddonName, OnAddonPostDraw);
         Plugin.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, AddonName, OnAddonFinalize);
+#if DEBUG
+        Plugin.AddonLifecycle.RegisterListener(AddonEvent.PostUpdate, AddonName, OnAddonPostUpdate);
+#endif
     }
 
     public void Dispose()
     {
         Plugin.AddonLifecycle.UnregisterListener(AddonEvent.PreDraw, AddonName, OnAddonPreDraw);
+        Plugin.AddonLifecycle.UnregisterListener(AddonEvent.PostDraw, AddonName, OnAddonPostDraw);
         Plugin.AddonLifecycle.UnregisterListener(AddonEvent.PreFinalize, AddonName, OnAddonFinalize);
+#if DEBUG
+        Plugin.AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, AddonName, OnAddonPostUpdate);
+#endif
         createHook.Dispose();
         addHook.Dispose();
 
@@ -179,23 +192,89 @@ internal sealed unsafe class FlyTextNodes : IDisposable
         stale.Clear();
         foreach (var (offset, entry) in tracked)
         {
-            var node = LiveNode(addon, offset, entry);
-            if (node == null)
+            // La fiche désigne un autre nœud : le texte est terminé, on l'oublie.
+            if (!StillTracks(addon, offset, entry))
             {
+                LogLost(offset, entry, "fiche réutilisée");
                 stale.Add(offset);
                 continue;
             }
 
-            ApplyScale(node, entry);
+            // Nœud absent de la liste de l'addon (texte en attente, caché…) : on n'y touche pas, mais on le garde,
+            // sinon il apparaîtrait plus tard à la place du jeu sans être ajusté.
+            var node = LiveNode(addon, offset, entry);
+            if (node == null)
+            {
+                LogLost(offset, entry, "absent de la liste");
+                continue;
+            }
 
-            // Seuls les statuts du personnage changent de bloc ; ceux des autres restent sur eux.
-            var shift = entry.Category == FlyTextCategory.Status && entry.Actor == LocalPlayerActor ? statusShift : Vector2.Zero;
-            ApplyPosition(node, entry, shift);
+            ApplyScale(node, entry);
+            Log("PreDraw", offset, node, entry);
+            ApplyPosition(node, entry, ShiftFor(entry, statusShift));
         }
 
         // Texte terminé ou nœud détruit : on l'oublie.
         foreach (var offset in stale)
             tracked.Remove(offset);
+    }
+
+    // Juste après l'affichage du jeu : s'il a remis les textes à leur place pendant l'affichage, on les redécale.
+    private void OnAddonPostDraw(AddonEvent type, AddonArgs args)
+    {
+        var addon = (AtkUnitBase*)args.Addon.Address;
+        if (addon == null || tracked.Count == 0)
+            return;
+
+        var statusShift = groups.StatusShift();
+        CollectLiveNodes(addon);
+        foreach (var (offset, entry) in tracked)
+        {
+            var node = LiveNode(addon, offset, entry);
+            if (node == null)
+                continue;
+
+            Log("PostDraw", offset, node, entry);
+            ApplyPosition(node, entry, ShiftFor(entry, statusShift));
+        }
+    }
+
+    // Seuls les statuts du personnage changent de bloc ; ceux des autres restent sur eux.
+    private static Vector2 ShiftFor(Tracked entry, Vector2 statusShift) =>
+        entry.Category == FlyTextCategory.Status && entry.Actor == LocalPlayerActor ? statusShift : Vector2.Zero;
+
+#if DEBUG
+    // Relevé : position du nœud après la mise à jour du jeu, pour voir à quelle étape le jeu replace les textes.
+    private void OnAddonPostUpdate(AddonEvent type, AddonArgs args)
+    {
+        var addon = (AtkUnitBase*)args.Addon.Address;
+        if (addon == null || tracked.Count == 0)
+            return;
+
+        CollectLiveNodes(addon);
+        foreach (var (offset, entry) in tracked)
+        {
+            var node = LiveNode(addon, offset, entry);
+            if (node != null)
+                Log("PostUpdate", offset, node, entry);
+        }
+    }
+#endif
+
+    // Relevé (version de développement) : les premières images de chaque statut déplacé.
+    [System.Diagnostics.Conditional("DEBUG")]
+    private static void Log(string phase, int offset, AtkResNode* node, Tracked entry)
+    {
+#if DEBUG
+        if (entry.Category != FlyTextCategory.Status || entry.Actor != LocalPlayerActor || entry.Logged >= 18)
+            return;
+
+        entry.Logged++;
+        Plugin.Log.Information(
+            "[diag] node addon+{Offset:X} {Phase} pos=({X:F0},{Y:F0}) game=({GX:F0},{GY:F0}) written={Written} shift=({SX:F0},{SY:F0}) visible={Visible}",
+            offset, phase, node->X, node->Y, entry.GamePosition.X, entry.GamePosition.Y,
+            entry.WrittenPosition is { } w ? $"({w.X:F0},{w.Y:F0})" : "-", entry.AppliedShift.X, entry.AppliedShift.Y, node->IsVisible());
+#endif
     }
 
     private void ApplyScale(AtkResNode* node, Tracked entry)
@@ -236,11 +315,25 @@ internal sealed unsafe class FlyTextNodes : IDisposable
     // Addon détruit (déconnexion…) : ses nœuds n'existent plus.
     private void OnAddonFinalize(AddonEvent type, AddonArgs args) => tracked.Clear();
 
-    // Nœud du texte s'il existe toujours : la fiche désigne encore le nœud suivi, et ce nœud fait partie de l'addon.
-    private AtkResNode* LiveNode(AtkUnitBase* addon, int offset, Tracked entry)
+    // La fiche désigne toujours le nœud suivi.
+    private static bool StillTracks(AtkUnitBase* addon, int offset, Tracked entry) => *(nint*)((byte*)addon + offset) == entry.Node;
+
+    // Nœud du texte si on peut y écrire : la fiche désigne encore le nœud suivi, et ce nœud fait partie de l'addon.
+    private AtkResNode* LiveNode(AtkUnitBase* addon, int offset, Tracked entry) =>
+        StillTracks(addon, offset, entry) && liveNodes.Contains(entry.Node) ? (AtkResNode*)entry.Node : null;
+
+    // Relevé (version de développement) : pourquoi un statut déplacé n'est plus ajusté.
+    [System.Diagnostics.Conditional("DEBUG")]
+    private static void LogLost(int offset, Tracked entry, string reason)
     {
-        var node = *(nint*)((byte*)addon + offset);
-        return node == entry.Node && liveNodes.Contains(node) ? (AtkResNode*)node : null;
+#if DEBUG
+        if (entry.Category != FlyTextCategory.Status || entry.Actor != LocalPlayerActor || entry.Logged >= 24)
+            return;
+
+        entry.Logged++;
+        Plugin.Log.Information("[diag] lost addon+{Offset:X} reason={Reason} written={Written}",
+            offset, reason, entry.WrittenPosition is { } w ? $"({w.X:F0},{w.Y:F0})" : "-");
+#endif
     }
 
     private void CollectLiveNodes(AtkUnitBase* addon)
