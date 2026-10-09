@@ -1,0 +1,29 @@
+[
+  {
+    "Author": "Arzhael",
+    "Name": "Simple HUD",
+    "InternalName": "SimpleHUD",
+    "AssemblyVersion": "1.2.0.0",
+    "Description": "Adds \"Flying Text\" frames to the HUD layout editor: drag them to choose where the text about your character appears (healing received, status effects and damage taken), and set its size or hide it.\nIn the same editor, shows where each HUD element is and lets you set the selected one to the pixel.\nAvailable in English and French. Command: /simplehud",
+    "ApplicableVersion": "any",
+    "RepoUrl": "https://github.com/Arzhaell/SimpleHUD",
+    "Tags": [
+      "hud",
+      "hud layout",
+      "flytext",
+      "flying text",
+      "ui"
+    ],
+    "DalamudApiLevel": 15,
+    "LoadRequiredState": 0,
+    "LoadSync": false,
+    "CanUnloadAsync": false,
+    "LoadPriority": 0,
+    "Punchline": "Simple, pixel-precise tweaks to your HUD and flying text, right from the HUD layout editor.",
+    "AcceptsFeedback": true,
+    "DownloadLinkInstall": "https://github.com/Arzhaell/SimpleHUD/releases/download/v1.2.0/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/Arzhaell/SimpleHUD/releases/download/v1.2.0/latest.zip",
+    "DownloadLinkTesting": "https://github.com/Arzhaell/SimpleHUD/releases/download/v1.2.0/latest.zip",
+    "LastUpdate": 1791553290
+  }
+]
