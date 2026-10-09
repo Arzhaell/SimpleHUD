@@ -226,30 +226,6 @@ public class FlyTextLayoutTests
     }
 
     [Fact]
-    public void ShiftDoesNotPileUpWhenTheGameSetsPositions()
-    {
-        // Le jeu repart de sa propre position à chaque image (ici il avance de 2) : on garde sa nouvelle position.
-        var game = FlyTextLayout.GamePosition(current: new Vector2(100, 98), previousGame: new Vector2(100, 100), written: new Vector2(300, 100), appliedShift: new Vector2(200, 0));
-
-        Assert.Equal(new Vector2(100, 98), game);
-    }
-
-    [Fact]
-    public void ShiftDoesNotPileUpWhenTheGameMovesFromOurPosition()
-    {
-        // Le jeu fait avancer le texte depuis la place où on l'a mis : on retire notre décalage.
-        var game = FlyTextLayout.GamePosition(current: new Vector2(300, 98), previousGame: new Vector2(100, 100), written: new Vector2(300, 100), appliedShift: new Vector2(200, 0));
-
-        Assert.Equal(new Vector2(100, 98), game);
-    }
-
-    [Fact]
-    public void UnchangedTextKeepsItsGamePosition()
-    {
-        Assert.Equal(new Vector2(100, 100), FlyTextLayout.GamePosition(new Vector2(300, 100), new Vector2(100, 100), new Vector2(300, 100), new Vector2(200, 0)));
-    }
-
-    [Fact]
     public void OldSettingsKeepTheirTwoBlocks()
     {
         var moved = new Configuration { Version = 0 };
