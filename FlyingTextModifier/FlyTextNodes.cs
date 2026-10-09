@@ -4,7 +4,6 @@ using System.Numerics;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Hooking;
-using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using InteropGenerator.Runtime;
@@ -16,8 +15,9 @@ namespace FlyingTextModifier;
 /// quand ils ont leur propre bloc. Chaque texte est repéré au moment où le jeu le crée (son type et le personnage
 /// qui le reçoit sont alors connus).
 /// La taille et la place d'un texte sont aussi l'état de son animation pour le jeu (il le fait défiler à partir de
-/// sa place actuelle). Le plugin ne les modifie donc que le temps de l'affichage : il les applique juste après la
-/// mise à jour du jeu, et remet les valeurs du jeu au début de l'image suivante, avant que le jeu ne s'en serve.
+/// sa place actuelle). Le plugin ne les modifie donc que pour l'affichage : il les applique juste après la mise à
+/// jour des textes par le jeu, et remet les valeurs du jeu juste avant la mise à jour suivante. Le dessin a lieu
+/// entre les deux (constaté en jeu : remettre les valeurs dès le début de l'image annulait l'effet à l'écran).
 /// </summary>
 internal sealed unsafe class FlyTextNodes : IDisposable
 {
@@ -73,14 +73,14 @@ internal sealed unsafe class FlyTextNodes : IDisposable
             (nint)AddonFlyText.Addresses.CreateFlyText.Value, OnCreateFlyText);
         addHook.Enable();
         createHook.Enable();
-        Plugin.Framework.Update += OnFrameworkUpdate;
+        Plugin.AddonLifecycle.RegisterListener(AddonEvent.PreUpdate, AddonName, OnAddonPreUpdate);
         Plugin.AddonLifecycle.RegisterListener(AddonEvent.PostUpdate, AddonName, OnAddonPostUpdate);
         Plugin.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, AddonName, OnAddonFinalize);
     }
 
     public void Dispose()
     {
-        Plugin.Framework.Update -= OnFrameworkUpdate;
+        Plugin.AddonLifecycle.UnregisterListener(AddonEvent.PreUpdate, AddonName, OnAddonPreUpdate);
         Plugin.AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, AddonName, OnAddonPostUpdate);
         Plugin.AddonLifecycle.UnregisterListener(AddonEvent.PreFinalize, AddonName, OnAddonFinalize);
         createHook.Dispose();
@@ -93,14 +93,11 @@ internal sealed unsafe class FlyTextNodes : IDisposable
         tracked.Clear();
     }
 
-    // Début de l'image, avant que le jeu ne fasse avancer ses textes : il retrouve ses propres valeurs.
-    private void OnFrameworkUpdate(IFramework framework)
+    // Juste avant que le jeu ne fasse avancer ses textes : il retrouve ses propres valeurs.
+    private void OnAddonPreUpdate(AddonEvent type, AddonArgs args)
     {
-        if (tracked.Count == 0)
-            return;
-
-        var addon = (AtkUnitBase*)Plugin.GameGui.GetAddonByName(AddonName).Address;
-        if (addon != null)
+        var addon = (AtkUnitBase*)args.Addon.Address;
+        if (addon != null && tracked.Count != 0)
             RestoreAll(addon);
     }
 
