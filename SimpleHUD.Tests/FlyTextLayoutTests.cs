@@ -313,6 +313,24 @@ public class FlyTextLayoutTests
     }
 
     [Fact]
+    public void ShieldIsNamedAfterTheSpellThatGaveIt()
+    {
+        var statusNames = new Dictionary<uint, string> { [2612] = "Haima", [2642] = "Haimatinon", [297] = "Galvanisation", [1918] = "Catalyse" };
+        var spells = new Dictionary<uint, string> { [2612] = "Haima", [2642] = "Haima" };
+
+        // Sort lancé sur toi : son nom, même si l'effet porte un autre nom (Traité du réconfort → Galvanisation).
+        Assert.Equal("Traité du réconfort", FlyTextLayout.ShieldName("Traité du réconfort", [297, 1918], spells, statusNames));
+
+        // Bouclier de Haima renouvelé seul : aucun sort, mais l'effet renouvelé vient de Haima.
+        Assert.Equal("Haima", FlyTextLayout.ShieldName(null, [2642], spells, statusNames));
+
+        // Effet inconnu reçu seul : son nom ; plusieurs effets inconnus, ou aucun : pas de nom.
+        Assert.Equal("Galvanisation", FlyTextLayout.ShieldName(null, [297], spells, statusNames));
+        Assert.Null(FlyTextLayout.ShieldName(null, [297, 1918], spells, statusNames));
+        Assert.Null(FlyTextLayout.ShieldName("", [], spells, statusNames));
+    }
+
+    [Fact]
     public void APushIsWhatExceedsTheUsualScroll()
     {
         // Relevé en jeu : un statut qui défilait de 1,35 px par image saute de 755,7 à 928,3 à l'arrivée d'un dégât.

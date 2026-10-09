@@ -336,6 +336,26 @@ internal static class FlyTextLayout
         return rounded > 0 ? rounded : (int)Math.Ceiling(amount);
     }
 
+    /// <summary>
+    /// Nom à donner à un bouclier : le sort qui vient de te donner un effet ; sinon, pour un bouclier qui se renouvelle
+    /// seul (Haima…), le sort déjà vu donner l'un des effets reçus à l'instant ; sinon l'effet reçu à l'instant, s'il est
+    /// seul ; sinon null (le plugin écrit alors « Bouclier »).
+    /// </summary>
+    public static string? ShieldName(string? spell, IReadOnlyList<uint> freshStatuses,
+        IReadOnlyDictionary<uint, string> spellsByStatus, IReadOnlyDictionary<uint, string> statusNames)
+    {
+        if (!string.IsNullOrEmpty(spell))
+            return spell;
+
+        foreach (var status in freshStatuses)
+        {
+            if (spellsByStatus.TryGetValue(status, out var known))
+                return known;
+        }
+
+        return freshStatuses.Count == 1 && statusNames.TryGetValue(freshStatuses[0], out var name) && name.Length > 0 ? name : null;
+    }
+
     /// <summary>Taille réglable : de 50 % à 200 % de celle du jeu.</summary>
     public static float ClampScale(float scale) => float.IsFinite(scale) ? Math.Clamp(scale, 0.5f, 2f) : 1f;
 
