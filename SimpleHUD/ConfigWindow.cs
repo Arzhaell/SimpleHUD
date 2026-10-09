@@ -130,7 +130,7 @@ internal sealed class ConfigWindow : Window
         }
     }
 
-    // Disposition des textes sur le personnage : un, deux ou trois cadres.
+    // Disposition des textes sur le personnage : un, deux ou trois cadres, plus celui des autres textes s'ils sont à part.
     private void DrawLayout()
     {
         var current = plugin.Configuration.Layout;
@@ -146,12 +146,9 @@ internal sealed class ConfigWindow : Window
             ImGui.EndCombo();
         }
 
-        if (FlyTextLayout.SeparatesStatuses(current))
-        {
-            Help(Loc.T(
-                "The game stacks status effects with damage taken: when both arrive together, a block may show a gap.",
-                "Le jeu empile les statuts avec les dégâts subis : quand les deux arrivent ensemble, un bloc peut garder un trou."));
-        }
+        var separateOther = plugin.Configuration.SeparateOther;
+        if (ImGui.Checkbox(Loc.T("Other texts in their own frame (EXP, MP, items…)", "Autres textes dans leur propre cadre (EXP, PM, objets…)"), ref separateOther))
+            plugin.SetSeparateOther(separateOther);
     }
 
     // Positions au pixel près : X/Y à l'écran pour chaque cadre du personnage, écart avec la cible pour les textes sur la cible.
@@ -167,7 +164,7 @@ internal sealed class ConfigWindow : Window
         ImGui.TableSetupColumn(string.Empty);
         ImGui.TableHeadersRow();
 
-        foreach (var block in FlyTextLayout.Blocks(plugin.Configuration.Layout))
+        foreach (var block in plugin.Blocks)
         {
             if (plugin.BlockPosition(block) is not { } ratio)
                 continue;

@@ -44,6 +44,9 @@ internal sealed unsafe class TestTexts
             Schedule(Recipient.Player, group == FlyTextGroup.Healing ? HealingSamples() : StatusDamageSamples());
     }
 
+    /// <summary>Autres textes sur le personnage : EXP (rangée par le jeu avec les dégâts subis) et PM (avec les soins).</summary>
+    public void ShowOthers() => Schedule(Recipient.Player, OtherSamples());
+
     /// <summary>Tes coups sur la cible actuelle. Faux s'il n'y a pas de cible qui puisse en recevoir.</summary>
     public bool ShowOnTarget()
     {
@@ -81,6 +84,13 @@ internal sealed unsafe class TestTexts
             Hit(FlyTextKind.Dodge, ScreenLogRelationKind.Enemy, 0),
         ];
     }
+
+    private static Sample[] OtherSamples() =>
+    [
+        new(FlyTextKind.Exp, ScreenLogRelationKind.LocalPlayer, 1234, AttackActionId),
+        new(FlyTextKind.MpRegen, ScreenLogRelationKind.LocalPlayer, 500, HealingActionId),
+        new(FlyTextKind.Exp, ScreenLogRelationKind.LocalPlayer, 5678, AttackActionId),
+    ];
 
     private Sample[] TargetSamples() =>
     [

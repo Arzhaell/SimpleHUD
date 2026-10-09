@@ -51,7 +51,7 @@ public sealed class Plugin : IDalamudPlugin
         Loc.Update(Configuration.Language);
         Groups = new FlyTextGroups(Configuration);
         nodes = new FlyTextNodes(Configuration, Groups);
-        hider = new FlyTextHider(Configuration);
+        hider = new FlyTextHider(Configuration, nodes);
 
         configWindow = new ConfigWindow(this);
         overlay = new PlacementOverlay(this);
@@ -85,6 +85,7 @@ public sealed class Plugin : IDalamudPlugin
         PersonalBlock.StatusDamage => Loc.T("Status effects / damage taken", "Statuts / dégâts subis"),
         PersonalBlock.Status => Loc.T("Status effects", "Statuts"),
         PersonalBlock.HealingDamage => Loc.T("Healing / damage taken", "Soins / dégâts subis"),
+        PersonalBlock.Other => CategoryName(FlyTextCategory.Other),
         _ => Loc.T("Damage taken", "Dégâts subis"),
     };
 
@@ -96,13 +97,16 @@ public sealed class Plugin : IDalamudPlugin
         _ => Loc.T("All separate", "Tout séparé"),
     };
 
+    /// <summary>Cadres affichés : ceux de la disposition, plus celui des autres textes s'ils sont à part.</summary>
+    public PersonalBlock[] Blocks => FlyTextLayout.Blocks(Configuration.Layout, Configuration.SeparateOther);
+
     /// <summary>
     /// Point de référence d'un cadre (fraction de l'écran) : son point d'ancrage, ou celui des statuts/dégâts
     /// pour un cadre qui regroupe les deux blocs du jeu.
     /// </summary>
     public Vector2? BlockPosition(PersonalBlock block) => block switch
     {
-        PersonalBlock.Status => Groups.StatusPosition,
+        PersonalBlock.Status or PersonalBlock.Other => Groups.GetSeparatePosition(block),
         PersonalBlock.Healing => Groups.GetPosition(FlyTextGroup.Healing),
         _ => Groups.GetPosition(FlyTextGroup.StatusDamage),
     };
@@ -110,10 +114,10 @@ public sealed class Plugin : IDalamudPlugin
     /// <summary>Déplace un cadre (écart en fraction de l'écran) : tous les blocs du jeu qu'il contient bougent ensemble.</summary>
     public void MoveBlock(PersonalBlock block, Vector2 delta)
     {
-        if (block == PersonalBlock.Status)
+        if (block is PersonalBlock.Status or PersonalBlock.Other)
         {
-            if (Groups.StatusPosition is { } status)
-                Groups.StatusPosition = status + delta;
+            if (Groups.GetSeparatePosition(block) is { } separate)
+                Groups.SetSeparatePosition(block, separate + delta);
             return;
         }
 
@@ -126,10 +130,10 @@ public sealed class Plugin : IDalamudPlugin
 
     public void ResetBlock(PersonalBlock block)
     {
-        if (block == PersonalBlock.Status)
+        if (block is PersonalBlock.Status or PersonalBlock.Other)
         {
             if (Groups.GetPosition(FlyTextGroup.StatusDamage) is { } statusDamage)
-                Groups.StatusPosition = FlyTextLayout.DefaultStatusPosition(statusDamage);
+                Groups.SetSeparatePosition(block, DefaultSeparatePosition(block, statusDamage));
         }
         else
         {
@@ -141,15 +145,34 @@ public sealed class Plugin : IDalamudPlugin
         ShowBlockTest(block);
     }
 
+    // Première place d'un cadre à part : les statuts au-dessus des dégâts, les autres textes au-dessous.
+    private static Vector2 DefaultSeparatePosition(PersonalBlock block, Vector2 statusDamage) => block == PersonalBlock.Other
+        ? FlyTextLayout.DefaultOtherPosition(statusDamage)
+        : FlyTextLayout.DefaultStatusPosition(statusDamage);
+
     /// <summary>Quelques textes du cadre pour voir où ils tombent.</summary>
     public void ShowBlockTest(PersonalBlock block)
     {
         if (block == PersonalBlock.Healing)
             ShowTestTexts(FlyTextGroup.Healing);
+        else if (block == PersonalBlock.Other)
+            ShowOtherTestTexts();
         else if (block is PersonalBlock.All or PersonalBlock.HealingDamage)
             ShowTestTexts();
         else
             ShowTestTexts(FlyTextGroup.StatusDamage);
+    }
+
+    /// <summary>Donne aux autres textes (EXP, PM, objets obtenus…) leur propre cadre, ou les remet dans les blocs du jeu.</summary>
+    public void SetSeparateOther(bool separate)
+    {
+        Configuration.SeparateOther = separate;
+        if (separate && Groups.GetSeparatePosition(PersonalBlock.Other) == null
+            && Groups.GetPosition(FlyTextGroup.StatusDamage) is { } statusDamage)
+            Groups.SetSeparatePosition(PersonalBlock.Other, FlyTextLayout.DefaultOtherPosition(statusDamage));
+
+        Configuration.Save();
+        ShowOtherTestTexts();
     }
 
     /// <summary>
@@ -168,8 +191,8 @@ public sealed class Plugin : IDalamudPlugin
                 Groups.SetPosition(FlyTextGroup.Healing, FlyTextLayout.RegroupedHealing(statusDamage, defaultHealing, defaultStatusDamage));
             }
 
-            if (FlyTextLayout.SeparatesStatuses(layout) && Groups.StatusPosition == null)
-                Groups.StatusPosition = FlyTextLayout.DefaultStatusPosition(statusDamage);
+            if (FlyTextLayout.SeparatesStatuses(layout) && Groups.GetSeparatePosition(PersonalBlock.Status) == null)
+                Groups.SetSeparatePosition(PersonalBlock.Status, FlyTextLayout.DefaultStatusPosition(statusDamage));
         }
 
         Configuration.Save();
@@ -180,26 +203,29 @@ public sealed class Plugin : IDalamudPlugin
     {
         FlyTextCategory.Status => Loc.T("Buffs / debuffs", "Buffs / débuffs"),
         FlyTextCategory.Healing => Loc.T("Healing", "Soins"),
-        FlyTextCategory.Damage => Loc.T("Damage", "Dégâts"),
+        FlyTextCategory.DamageTaken => Loc.T("Damage taken", "Dégâts subis"),
+        FlyTextCategory.DamageDealt => Loc.T("Damage dealt", "Dégâts infligés"),
         _ => Loc.T("Other (EXP, MP…)", "Autres (EXP, PM…)"),
     };
 
     /// <summary>Après un changement de taille : quelques textes de la famille pour voir le résultat.</summary>
     public void ShowScaleTest(FlyTextCategory category)
     {
-        // Pas de texte de test pour les autres familles (expérience, PM…).
-        if (category == FlyTextCategory.Other)
-            return;
-
-        if (category == FlyTextCategory.Healing)
+        switch (category)
         {
-            ShowTestTexts(FlyTextGroup.Healing);
-            return;
+            case FlyTextCategory.Healing:
+                ShowTestTexts(FlyTextGroup.Healing);
+                break;
+            case FlyTextCategory.DamageDealt:
+                ShowTargetTestTexts();
+                break;
+            case FlyTextCategory.Other:
+                ShowOtherTestTexts();
+                break;
+            default:
+                ShowTestTexts(FlyTextGroup.StatusDamage);
+                break;
         }
-
-        ShowTestTexts(FlyTextGroup.StatusDamage);
-        if (category == FlyTextCategory.Damage)
-            ShowTargetTestTexts();
     }
 
     // Un fichier de configuration illisible ne doit pas empêcher le plugin de se charger : on repart des réglages par défaut.
@@ -246,7 +272,9 @@ public sealed class Plugin : IDalamudPlugin
         foreach (var group in FlyTextLayout.Groups)
             Groups.Reset(group);
         Configuration.Layout = PersonalLayout.Grouped;
-        Groups.StatusPosition = null;
+        Configuration.SeparateOther = false;
+        Groups.SetSeparatePosition(PersonalBlock.Status, null);
+        Groups.SetSeparatePosition(PersonalBlock.Other, null);
         Groups.TargetOffset = Vector2.Zero;
         foreach (var category in Categories)
         {
@@ -259,11 +287,19 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     /// <summary>Familles dont la taille et l'affichage se règlent dans la fenêtre.</summary>
-    public static readonly FlyTextCategory[] Categories = [FlyTextCategory.Status, FlyTextCategory.Healing, FlyTextCategory.Damage, FlyTextCategory.Other];
+    public static readonly FlyTextCategory[] Categories =
+        [FlyTextCategory.Status, FlyTextCategory.Healing, FlyTextCategory.DamageTaken, FlyTextCategory.DamageDealt, FlyTextCategory.Other];
 
-    /// <summary>Fait défiler sur le personnage tous les types de textes des groupes donnés (tous si aucun).</summary>
-    public void ShowTestTexts(params FlyTextGroup[] groups) =>
+    /// <summary>Fait défiler sur le personnage tous les types de textes des groupes donnés (tous si aucun, autres textes compris).</summary>
+    public void ShowTestTexts(params FlyTextGroup[] groups)
+    {
         testTexts.ShowOnPlayer(groups.Length == 0 ? FlyTextLayout.Groups : groups);
+        if (groups.Length == 0)
+            ShowOtherTestTexts();
+    }
+
+    /// <summary>Fait défiler sur le personnage des autres textes (EXP, PM).</summary>
+    public void ShowOtherTestTexts() => testTexts.ShowOthers();
 
     /// <summary>Fait défiler tes coups sur la cible actuelle. Faux s'il n'y a pas de cible.</summary>
     public bool ShowTargetTestTexts() => testTexts.ShowOnTarget();

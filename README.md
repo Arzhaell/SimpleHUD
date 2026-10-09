@@ -26,8 +26,10 @@ Formerly "Flying Text Modifier" (up to version 1.1.0).
   - **All separate**: healing received · status effects · damage taken.
 
   The game only knows two blocks (healing; status effects and damage taken). To separate status effects, the plugin
-  moves each status text one by one; since the game always stacks them with damage, a block may keep a gap when both
-  arrive at the same time.
+  moves each status text one by one. When a text arrives, the game pushes down the others in its block to make room
+  for it: the plugin cancels that push for texts in another frame, so each frame scrolls on its own.
+- **Other texts in their own frame** (checkbox): EXP, looted items, MP recovered, crafting and gathering get their own
+  frame, whatever the layout.
 - **On the target**: your hits on the target. These texts always follow the target; you set their offset from it
   (the circle marks the target, or your character when there is none).
 - Drag a frame (hold Shift for fine moves): the yellow dot marks where the game places the texts. When you let go,
@@ -35,12 +37,12 @@ Formerly "Flying Text Modifier" (up to version 1.1.0).
 - To the pixel: the "Flying text" tab of the plugin window gives X and Y for each frame, with − / + buttons
   (Ctrl+click: by 10).
 - Right-click a frame, or the ↺ button: back to the game's original position.
-- **Display and size**: for buffs / debuffs, healing, damage (on you and on the target) and other texts (EXP, MP…),
-  the window lets you hide them or set their size, from 50% to 200% of the game's size. The critical hit bounce is
-  kept.
+- **Display and size**: for buffs / debuffs, healing, damage taken (on you), damage dealt (on your targets) and other
+  texts (EXP, MP…), the window lets you hide them or set their size, from 50% to 200% of the game's size. The
+  critical hit bounce is kept.
 - **Test all texts** scrolls every kind of text over your character: healing, critical healing, beneficial and
   detrimental status effects gained then lost (real game status effects, picked at random on each try), damage,
-  critical hits, direct hits, auto-attacks, misses…
+  critical hits, direct hits, auto-attacks, misses, EXP, MP…
 - `/simplehud` opens the window outside the HUD layout editor; the frames show while it is open.
 
 ### Game HUD to the pixel

@@ -141,15 +141,28 @@ public class FlyTextLayoutTests
     [InlineData(39, FlyTextCategory.Status)] // DebuffFading
     [InlineData(21, FlyTextCategory.Healing)] // Healing
     [InlineData(34, FlyTextCategory.Healing)] // HealingCrit
-    [InlineData(0, FlyTextCategory.Damage)] // AutoAttackOrDot
-    [InlineData(7, FlyTextCategory.Damage)] // DamageCritDh
-    [InlineData(10, FlyTextCategory.Damage)] // Dodge
+    [InlineData(0, FlyTextCategory.DamageTaken)] // AutoAttackOrDot
+    [InlineData(7, FlyTextCategory.DamageTaken)] // DamageCritDh
+    [InlineData(10, FlyTextCategory.DamageTaken)] // Dodge
     [InlineData(14, FlyTextCategory.Other)] // Exp
     [InlineData(22, FlyTextCategory.Other)] // MpRegen
+    [InlineData(50, FlyTextCategory.Other)] // LootedItem
     [InlineData(-1, FlyTextCategory.Other)]
-    public void SortsTextsIntoFamilies(int kind, FlyTextCategory expected)
+    public void SortsTextsOnYouIntoFamilies(int kind, FlyTextCategory expected)
     {
-        Assert.Equal(expected, FlyTextLayout.Categorize(kind));
+        Assert.Equal(expected, FlyTextLayout.Categorize(kind, 1));
+    }
+
+    [Fact]
+    public void DamageOnOthersIsDealt()
+    {
+        // Relevé en jeu : acteur 0 = soins sur toi, 1 = statuts et dégâts sur toi, 2 et plus = les autres.
+        Assert.Equal(FlyTextCategory.DamageTaken, FlyTextLayout.Categorize(4, 0));
+        Assert.Equal(FlyTextCategory.DamageDealt, FlyTextLayout.Categorize(4, 2));
+        Assert.Equal(FlyTextCategory.DamageDealt, FlyTextLayout.Categorize(6, 9));
+        Assert.Equal(FlyTextCategory.DamageDealt, FlyTextLayout.Categorize(4, null));
+        Assert.Equal(FlyTextCategory.Status, FlyTextLayout.Categorize(13, 3));
+        Assert.Equal(FlyTextCategory.Healing, FlyTextLayout.Categorize(21, 4));
     }
 
     [Fact]
@@ -158,12 +171,14 @@ public class FlyTextLayoutTests
         var configuration = new Configuration();
         configuration.SetScale(FlyTextCategory.Status, 3f);
         configuration.SetScale(FlyTextCategory.Healing, 0.1f);
-        configuration.SetScale(FlyTextCategory.Damage, float.NaN);
+        configuration.SetScale(FlyTextCategory.DamageTaken, float.NaN);
+        configuration.SetScale(FlyTextCategory.DamageDealt, 1.8f);
         configuration.SetScale(FlyTextCategory.Other, 1.5f);
 
         Assert.Equal(2f, configuration.GetScale(FlyTextCategory.Status));
         Assert.Equal(0.5f, configuration.GetScale(FlyTextCategory.Healing));
-        Assert.Equal(1f, configuration.GetScale(FlyTextCategory.Damage));
+        Assert.Equal(1f, configuration.GetScale(FlyTextCategory.DamageTaken));
+        Assert.Equal(1.8f, configuration.GetScale(FlyTextCategory.DamageDealt));
         Assert.Equal(1.5f, configuration.GetScale(FlyTextCategory.Other));
     }
 
@@ -171,13 +186,37 @@ public class FlyTextLayoutTests
     public void HidesOnlyTheChosenFamilies()
     {
         var configuration = new Configuration();
-        configuration.SetHidden(FlyTextCategory.Damage, true);
+        configuration.SetHidden(FlyTextCategory.DamageTaken, true);
         configuration.SetHidden(FlyTextCategory.Other, true);
 
-        Assert.True(configuration.IsHidden(FlyTextLayout.Categorize(4))); // Damage
-        Assert.True(configuration.IsHidden(FlyTextLayout.Categorize(14))); // Exp
-        Assert.False(configuration.IsHidden(FlyTextLayout.Categorize(12))); // Buff
-        Assert.False(configuration.IsHidden(FlyTextLayout.Categorize(21))); // Healing
+        Assert.True(configuration.IsHidden(FlyTextLayout.Categorize(4, 1))); // Damage sur toi
+        Assert.False(configuration.IsHidden(FlyTextLayout.Categorize(4, 2))); // Damage sur la cible
+        Assert.True(configuration.IsHidden(FlyTextLayout.Categorize(14, 1))); // Exp
+        Assert.False(configuration.IsHidden(FlyTextLayout.Categorize(12, 1))); // Buff
+        Assert.False(configuration.IsHidden(FlyTextLayout.Categorize(21, 0))); // Healing
+    }
+
+    [Fact]
+    public void OldDamageSettingsApplyToDamageTakenAndDealt()
+    {
+        // Fichier de réglages de la 1.2.0 : une seule taille et une seule case pour tous les dégâts.
+        const string old = """{ "Version": 1, "Layout": 3, "DamageScale": 0.5, "HideDamage": true, "StatusScale": 1.15 }""";
+
+        var configuration = JsonConvert.DeserializeObject<Configuration>(old)!;
+
+        Assert.Equal(0.5f, configuration.DamageTakenScale);
+        Assert.Equal(0.5f, configuration.DamageDealtScale);
+        Assert.True(configuration.HideDamageTaken);
+        Assert.True(configuration.HideDamageDealt);
+        Assert.True(configuration.Migrate());
+        Assert.Equal(PersonalLayout.AllSeparate, configuration.Layout);
+        Assert.Equal(1.15f, configuration.StatusScale);
+
+        // Les anciennes clés ne sont jamais réécrites.
+        var saved = JsonConvert.SerializeObject(configuration);
+        Assert.DoesNotContain("\"DamageScale\"", saved);
+        Assert.DoesNotContain("\"HideDamage\"", saved);
+        Assert.Contains("\"DamageDealtScale\":0.5", saved);
     }
 
     [Theory]
@@ -188,6 +227,72 @@ public class FlyTextLayoutTests
     public void EachLayoutHasItsFrames(PersonalLayout layout, PersonalBlock[] expected)
     {
         Assert.Equal(expected, FlyTextLayout.Blocks(layout));
+        Assert.Equal(expected, FlyTextLayout.Blocks(layout, separateOther: false));
+        Assert.Equal([.. expected, PersonalBlock.Other], FlyTextLayout.Blocks(layout, separateOther: true));
+    }
+
+    [Fact]
+    public void StatusesAndOtherTextsGoToTheirOwnFrame()
+    {
+        Assert.Equal(PersonalBlock.Status, FlyTextLayout.SeparateBlock(FlyTextCategory.Status, FlyTextGroup.StatusDamage, PersonalLayout.AllSeparate, false));
+        Assert.Null(FlyTextLayout.SeparateBlock(FlyTextCategory.Status, FlyTextGroup.StatusDamage, PersonalLayout.HealingSeparate, true));
+        Assert.Null(FlyTextLayout.SeparateBlock(FlyTextCategory.DamageTaken, FlyTextGroup.StatusDamage, PersonalLayout.AllSeparate, true));
+
+        // EXP et objets obtenus sont rangés avec les dégâts subis, la PM avec les soins : tous vont dans le cadre des autres.
+        Assert.Equal(PersonalBlock.Other, FlyTextLayout.SeparateBlock(FlyTextCategory.Other, FlyTextGroup.StatusDamage, PersonalLayout.Grouped, true));
+        Assert.Equal(PersonalBlock.Other, FlyTextLayout.SeparateBlock(FlyTextCategory.Other, FlyTextGroup.Healing, PersonalLayout.AllSeparate, true));
+        Assert.Null(FlyTextLayout.SeparateBlock(FlyTextCategory.Other, FlyTextGroup.StatusDamage, PersonalLayout.AllSeparate, false));
+        Assert.Null(FlyTextLayout.SeparateBlock(FlyTextCategory.Healing, FlyTextGroup.Healing, PersonalLayout.AllSeparate, true));
+    }
+
+    [Fact]
+    public void OnlyTheFirstTwoActorsAreOnYou()
+    {
+        Assert.Equal(FlyTextGroup.Healing, FlyTextLayout.PlayerGroup(0));
+        Assert.Equal(FlyTextGroup.StatusDamage, FlyTextLayout.PlayerGroup(1));
+        Assert.Null(FlyTextLayout.PlayerGroup(2));
+        Assert.Null(FlyTextLayout.PlayerGroup(null));
+    }
+
+    [Fact]
+    public void OtherFrameStartsBelowTheDamage()
+    {
+        var other = FlyTextLayout.DefaultOtherPosition(new Vector2(0.55f, 0.5f));
+
+        Assert.Equal(0.55f, other.X, 4);
+        Assert.Equal(0.6f, other.Y, 4);
+    }
+
+    [Theory]
+    // Le jeu pousse après avoir créé : la tranche k vient de la création k − 1, rien avant la première.
+    [InlineData(0, 2, false, -1)]
+    [InlineData(1, 2, false, 0)]
+    [InlineData(2, 2, false, 1)]
+    // Le jeu pousse avant de créer : la tranche k vient de la création k, rien après la dernière.
+    [InlineData(0, 2, true, 0)]
+    [InlineData(1, 2, true, 1)]
+    [InlineData(2, 2, true, -1)]
+    public void PushesComeFromTheRightCreation(int slice, int creations, bool before, int expected)
+    {
+        Assert.Equal(expected, FlyTextLayout.PushCause(slice, creations, before));
+    }
+
+    [Fact]
+    public void UnseenPushIsWhatExceedsTheUsualScroll()
+    {
+        // Relevé en jeu : un statut qui défilait de 1,3 px par image saute de 657 à 718 à l'arrivée d'un dégât.
+        Assert.Equal(61f - 1.3f, FlyTextLayout.UnseenPush(61f, 0f, 1.3f), 3);
+        Assert.Equal(0f, FlyTextLayout.UnseenPush(61f, 59.7f, 1.3f));
+        Assert.Equal(0f, FlyTextLayout.UnseenPush(2.5f, 0f, 1.3f));
+    }
+
+    [Fact]
+    public void APushIsNotAReplacement()
+    {
+        var shift = new Vector2(0, -150);
+
+        Assert.False(FlyTextLayout.GameReplacedText(new Vector2(1283, 600), new Vector2(1283, 450), shift, pushPossible: true));
+        Assert.True(FlyTextLayout.GameReplacedText(new Vector2(1283, 1152), new Vector2(1620, 1010), new Vector2(337, -143), pushPossible: true));
     }
 
     [Fact]

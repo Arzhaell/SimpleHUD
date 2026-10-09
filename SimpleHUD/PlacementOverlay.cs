@@ -32,7 +32,7 @@ internal sealed class PlacementOverlay
 
         var viewport = ImGuiHelpers.MainViewport;
         var size = FrameSize * ImGuiHelpers.GlobalScale;
-        foreach (var block in FlyTextLayout.Blocks(plugin.Configuration.Layout))
+        foreach (var block in plugin.Blocks)
             DrawBlockFrame(block, viewport.Pos, viewport.Size, size);
         DrawTargetFrame(viewport.Pos, viewport.Size, size);
     }

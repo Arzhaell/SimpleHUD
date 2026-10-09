@@ -39,12 +39,15 @@ public enum PersonalBlock
     Status,
     HealingDamage,
     Damage,
+
+    /// <summary>Autres textes (EXP, PM, objets obtenus…), quand ils sont à part.</summary>
+    Other,
 }
 
-/// <summary>Familles de textes dont on peut régler la taille.</summary>
+/// <summary>Familles de textes dont on peut régler la taille et l'affichage.</summary>
 public enum FlyTextCategory
 {
-    /// <summary>Tout le reste (expérience, PM, artisanat…) : taille du jeu.</summary>
+    /// <summary>Tout le reste (expérience, PM, objets obtenus, artisanat…).</summary>
     Other,
 
     /// <summary>Effets de statut gagnés, perdus, résistés…</summary>
@@ -53,8 +56,11 @@ public enum FlyTextCategory
     /// <summary>Soins (et PV absorbés).</summary>
     Healing,
 
-    /// <summary>Dégâts, sur toi comme sur la cible, avec ratés et esquives.</summary>
-    Damage,
+    /// <summary>Dégâts sur toi, avec ratés et esquives.</summary>
+    DamageTaken,
+
+    /// <summary>Dégâts sur tes cibles et les autres personnages, avec ratés et esquives.</summary>
+    DamageDealt,
 }
 
 /// <summary>
@@ -73,6 +79,12 @@ internal static class FlyTextLayout
     private const float MaxCoordinate = 20000f;
 
     public static readonly FlyTextGroup[] Groups = [FlyTextGroup.Healing, FlyTextGroup.StatusDamage];
+
+    /// <summary>
+    /// En dessous, l'écart entre le mouvement d'un texte et son défilement habituel vient de la durée variable des
+    /// images, pas d'une poussée du jeu (en pixels).
+    /// </summary>
+    public const float PushThreshold = 1.5f;
 
     /// <summary>Cherche le tableau des groupes dans la mémoire de l'addon, à partir de <paramref name="start"/>. Renvoie -1 s'il est introuvable.</summary>
     public static int FindGroupArray(ReadOnlySpan<byte> memory, int start)
@@ -179,6 +191,33 @@ internal static class FlyTextLayout
         _ => [PersonalBlock.Healing, PersonalBlock.Status, PersonalBlock.Damage],
     };
 
+    /// <summary>Cadres affichés pour une disposition, plus celui des autres textes s'ils sont à part.</summary>
+    public static PersonalBlock[] Blocks(PersonalLayout layout, bool separateOther) =>
+        separateOther ? [.. Blocks(layout), PersonalBlock.Other] : Blocks(layout);
+
+    /// <summary>
+    /// Bloc du jeu d'un texte affiché sur le personnage, d'après le numéro d'acteur que le jeu lui donne
+    /// (0 : soins reçus, 1 : statuts et dégâts subis), ou null pour un texte sur un autre personnage.
+    /// </summary>
+    public static FlyTextGroup? PlayerGroup(uint? actor) => actor switch
+    {
+        0 => FlyTextGroup.Healing,
+        1 => FlyTextGroup.StatusDamage,
+        _ => null,
+    };
+
+    /// <summary>
+    /// Cadre à part où le plugin déplace un texte du personnage, ou null s'il reste dans le bloc où le jeu le range.
+    /// Les statuts (rangés par le jeu avec les dégâts subis) ont leur cadre dans certaines dispositions ; les autres
+    /// textes (EXP et objets obtenus, rangés avec les dégâts subis ; PM, avec les soins) quand l'option est cochée.
+    /// </summary>
+    public static PersonalBlock? SeparateBlock(FlyTextCategory category, FlyTextGroup group, PersonalLayout layout, bool separateOther) => category switch
+    {
+        FlyTextCategory.Status when group == FlyTextGroup.StatusDamage && SeparatesStatuses(layout) => PersonalBlock.Status,
+        FlyTextCategory.Other when separateOther => PersonalBlock.Other,
+        _ => null,
+    };
+
     /// <summary>Vrai si les statuts ont leur propre bloc (le jeu les range avec les dégâts : le plugin les sort un par un).</summary>
     public static bool SeparatesStatuses(PersonalLayout layout) => layout is PersonalLayout.StatusSeparate or PersonalLayout.AllSeparate;
 
@@ -201,22 +240,54 @@ internal static class FlyTextLayout
     /// <summary>Première place du bloc des statuts quand on le sépare : juste au-dessus des dégâts.</summary>
     public static Vector2 DefaultStatusPosition(Vector2 statusDamage) => Clamp(statusDamage + new Vector2(0, -0.1f));
 
+    /// <summary>Première place du cadre des autres textes : juste au-dessous des dégâts.</summary>
+    public static Vector2 DefaultOtherPosition(Vector2 statusDamage) => Clamp(statusDamage + new Vector2(0, 0.1f));
+
     /// <summary>
     /// Vrai si le jeu a replacé d'un coup un texte qu'on avait décalé (le décalage est alors perdu, à remettre).
     /// Constaté en jeu : quand il fait défiler un texte, le jeu ne change que sa hauteur, à partir de la place où il
     /// se trouve (le décalage reste) ; quand il le replace, il remet aussi sa position horizontale. Si le décalage
-    /// est purement vertical, un écart de hauteur supérieur à la moitié du décalage trahit le replacement.
+    /// est purement vertical, un écart de hauteur supérieur à la moitié du décalage trahit le replacement, sauf quand
+    /// le jeu a pu pousser le texte (création d'un texte dans son bloc) : la poussée aussi est un saut vertical.
     /// </summary>
-    public static bool GameReplacedText(Vector2 current, Vector2 written, Vector2 appliedShift)
+    public static bool GameReplacedText(Vector2 current, Vector2 written, Vector2 appliedShift, bool pushPossible = false)
     {
         if (appliedShift.X != 0)
             return current.X != written.X;
 
+        if (pushPossible)
+            return false;
+
         return MathF.Abs(current.Y - written.Y) > MathF.Max(4f, MathF.Abs(appliedShift.Y) / 2);
     }
 
-    /// <summary>Famille d'un texte d'après son type (numéros des types : FlyTextKind de Dalamud).</summary>
-    public static FlyTextCategory Categorize(int kind) => kind switch
+    /// <summary>
+    /// Création qui a causé les poussées relevées dans une tranche, ou -1 s'il n'y en a pas. Constaté en jeu : à la
+    /// création d'un texte, le jeu pousse vers le bas les textes déjà affichés dans le même bloc du jeu pour lui faire
+    /// de la place. Les mouvements sont relevés entre deux créations (tranche 0 : avant la première, tranche n : après
+    /// la dernière). Si le jeu pousse avant de créer, la tranche k vient de la création k ; sinon, de la création k − 1.
+    /// </summary>
+    public static int PushCause(int slice, int creations, bool pushesBeforeCreating)
+    {
+        var cause = pushesBeforeCreating ? slice : slice - 1;
+        return cause >= 0 && cause < creations ? cause : -1;
+    }
+
+    /// <summary>
+    /// Poussée du jeu qui n'a pas été vue pendant la création des textes : mouvement de l'image, moins les poussées
+    /// déjà vues et le défilement habituel (celui d'une image sans création). Zéro sous le seuil.
+    /// </summary>
+    public static float UnseenPush(float moved, float seenPush, float usualStep)
+    {
+        var push = moved - seenPush - usualStep;
+        return push > PushThreshold ? push : 0f;
+    }
+
+    /// <summary>
+    /// Famille d'un texte d'après son type (numéros des types : FlyTextKind de Dalamud) et l'acteur qui le reçoit :
+    /// les dégâts sur le personnage (acteurs 0 et 1) sont subis, les autres infligés.
+    /// </summary>
+    public static FlyTextCategory Categorize(int kind, uint? actor) => kind switch
     {
         // Buff, Debuff, DebuffNoEffect, BuffFading, DebuffFading, DebuffResisted, DebuffInvulnerable.
         12 or 13 or 37 or 38 or 39 or 41 or 48 => FlyTextCategory.Status,
@@ -226,7 +297,8 @@ internal static class FlyTextLayout
 
         // Auto-attaques et dégâts sur la durée (0-3), dégâts (4-7), raté/esquive (8-11), Invulnerable,
         // AutoAttackNoText3, coups critiques nommés, FullyResisted, HasNoEffect, Resist, Reflect, Reflected, CriticalHit4.
-        >= 0 and <= 11 or 28 or 33 or 35 or 36 or 43 or 44 or 49 or 53 or 54 or 56 => FlyTextCategory.Damage,
+        >= 0 and <= 11 or 28 or 33 or 35 or 36 or 43 or 44 or 49 or 53 or 54 or 56 =>
+            PlayerGroup(actor) == null ? FlyTextCategory.DamageDealt : FlyTextCategory.DamageTaken,
 
         _ => FlyTextCategory.Other,
     };

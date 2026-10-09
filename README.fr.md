@@ -26,8 +26,11 @@ Anciennement « Flying Text Modifier » (jusqu'à la version 1.1.0).
   - **Tout séparé** : soins reçus · statuts · dégâts subis.
 
   Le jeu ne connaît que deux blocs (soins ; statuts et dégâts subis). Pour séparer les statuts, le plugin déplace
-  chaque texte de statut un par un ; le jeu les empilant toujours avec les dégâts, un bloc peut garder un trou
-  quand les deux arrivent en même temps.
+  chaque texte de statut un par un. Quand un texte arrive, le jeu pousse vers le bas ceux de son bloc pour lui
+  faire de la place : le plugin annule cette poussée pour les textes d'un autre cadre, et chaque cadre défile de son
+  côté.
+- **Autres textes dans leur propre cadre** (case à cocher) : EXP, objets obtenus, PM récupérés, artisanat et
+  récolte ont leur cadre à part, quelle que soit la disposition.
 - **Sur la cible** : tes coups sur la cible. Ces textes suivent toujours la cible ; on règle l'écart avec elle
   (le cercle marque la cible, ou ton personnage s'il n'y en a pas).
 - Fais glisser un cadre (Maj enfoncée : déplacement fin) : le point jaune marque l'endroit où le jeu place les
@@ -35,12 +38,12 @@ Anciennement « Flying Text Modifier » (jusqu'à la version 1.1.0).
 - Au pixel près : l'onglet « Textes défilants » de la fenêtre du plugin donne X et Y de chaque cadre, avec des
   boutons − / + (Ctrl+clic : par 10).
 - Clic droit sur un cadre, ou bouton ↺ : retour à la position d'origine du jeu.
-- **Afficher / taille** : pour les buffs / débuffs, les soins, les dégâts (sur toi comme sur la cible) et les
-  autres textes (EXP, PM…), la fenêtre permet de les masquer ou de régler leur taille, de 50 % à 200 % de la
-  taille du jeu. Le rebond des critiques est gardé.
+- **Afficher / taille** : pour les buffs / débuffs, les soins, les dégâts subis (sur toi), les dégâts infligés
+  (sur tes cibles) et les autres textes (EXP, PM…), la fenêtre permet de les masquer ou de régler leur taille, de
+  50 % à 200 % de la taille du jeu. Le rebond des critiques est gardé.
 - **Tester tous les textes** fait défiler sur ton personnage tous les types de textes : soins, soins critiques,
   statuts bénéfiques et néfastes gagnés puis perdus (de vrais statuts du jeu, tirés au hasard à chaque essai),
-  dégâts, critiques, coups directs, auto-attaques, esquives…
+  dégâts, critiques, coups directs, auto-attaques, esquives, EXP, PM…
 - `/simplehud` ouvre la fenêtre hors de l'éditeur d'ATH ; les cadres s'affichent tant qu'elle est ouverte.
 
 ### ATH du jeu au pixel

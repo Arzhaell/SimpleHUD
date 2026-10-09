@@ -82,36 +82,38 @@ internal sealed unsafe class FlyTextGroups : IDisposable
             return gameDefaults[(int)group];
     }
 
-    /// <summary>Position du bloc des statuts quand il est séparé (fraction de l'écran).</summary>
-    public Vector2? StatusPosition
+    /// <summary>Position d'un cadre à part (statuts, autres textes) en fraction de l'écran, null tant qu'il n'a jamais été placé.</summary>
+    public Vector2? GetSeparatePosition(PersonalBlock block)
     {
-        get
-        {
-            lock (sync)
-                return configuration.StatusPosition;
-        }
+        lock (sync)
+            return block == PersonalBlock.Other ? configuration.OtherPosition : configuration.StatusPosition;
+    }
 
-        set
+    public void SetSeparatePosition(PersonalBlock block, Vector2? ratio)
+    {
+        lock (sync)
         {
-            lock (sync)
-                configuration.StatusPosition = value is { } ratio ? FlyTextLayout.Clamp(ratio) : null;
+            var position = ratio is { } value ? FlyTextLayout.Clamp(value) : (Vector2?)null;
+            if (block == PersonalBlock.Other)
+                configuration.OtherPosition = position;
+            else
+                configuration.StatusPosition = position;
         }
     }
 
     /// <summary>
-    /// Écart en pixels entre le bloc des statuts et le bloc où le jeu les range (statuts/dégâts) :
-    /// c'est de cet écart que le plugin déplace chaque texte de statut. Zéro si les statuts ne sont pas séparés.
+    /// Écart en pixels entre un cadre à part (statuts, autres textes) et le bloc où le jeu range ses textes :
+    /// c'est de cet écart que le plugin déplace chacun de ces textes. Zéro tant que l'un des deux est inconnu.
     /// </summary>
-    public Vector2 StatusShift()
+    public Vector2 SeparateShift(PersonalBlock block, FlyTextGroup group)
     {
         lock (sync)
         {
-            if (!FlyTextLayout.SeparatesStatuses(configuration.Layout)
-                || configuration.StatusPosition is not { } status
-                || current[(int)FlyTextGroup.StatusDamage] is not { } statusDamage)
+            var separate = block == PersonalBlock.Other ? configuration.OtherPosition : configuration.StatusPosition;
+            if (separate is not { } position || current[(int)group] is not { } game)
                 return Vector2.Zero;
 
-            return (status - statusDamage) * Screen;
+            return (position - game) * Screen;
         }
     }
 
