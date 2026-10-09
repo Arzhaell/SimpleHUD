@@ -24,5 +24,35 @@ public class Configuration : IPluginConfiguration
     /// </summary>
     public Vector2 TargetOffset { get; set; } = Vector2.Zero;
 
+    // Taille de chaque famille de textes, par rapport à celle du jeu (1 = inchangée).
+    public float StatusScale { get; set; } = 1f;
+    public float HealingScale { get; set; } = 1f;
+    public float DamageScale { get; set; } = 1f;
+
+    public float GetScale(FlyTextCategory category) => category switch
+    {
+        FlyTextCategory.Status => StatusScale,
+        FlyTextCategory.Healing => HealingScale,
+        FlyTextCategory.Damage => DamageScale,
+        _ => 1f,
+    };
+
+    public void SetScale(FlyTextCategory category, float scale)
+    {
+        scale = FlyTextLayout.ClampScale(scale);
+        switch (category)
+        {
+            case FlyTextCategory.Status:
+                StatusScale = scale;
+                break;
+            case FlyTextCategory.Healing:
+                HealingScale = scale;
+                break;
+            case FlyTextCategory.Damage:
+                DamageScale = scale;
+                break;
+        }
+    }
+
     public void Save() => Plugin.PluginInterface.SavePluginConfig(this);
 }

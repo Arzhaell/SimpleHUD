@@ -45,6 +45,9 @@ internal sealed class ConfigWindow : Window
         DrawPositions();
 
         ImGui.Spacing();
+        DrawScales();
+
+        ImGui.Spacing();
         if (ImGui.Button(Loc.T("Test all texts", "Tester tous les textes")))
         {
             plugin.ShowTestTexts();
@@ -97,6 +100,46 @@ internal sealed class ConfigWindow : Window
 
         if (ResetButton("Target"))
             plugin.ResetTarget();
+
+        ImGui.EndTable();
+    }
+
+    // Taille de chaque famille de textes, en % de celle du jeu. Au lâcher du curseur, quelques textes de test.
+    private void DrawScales()
+    {
+        if (!ImGui.BeginTable("##Scales", 3, ImGuiTableFlags.SizingFixedFit))
+            return;
+
+        ImGui.TableSetupColumn(Loc.T("Size", "Taille"));
+        ImGui.TableSetupColumn("%");
+        ImGui.TableSetupColumn(string.Empty);
+        ImGui.TableHeadersRow();
+
+        foreach (var category in Plugin.ScaledCategories)
+        {
+            ImGui.TableNextRow();
+            ImGui.TableNextColumn();
+            ImGui.AlignTextToFramePadding();
+            ImGui.TextUnformatted(Plugin.CategoryName(category));
+
+            ImGui.TableNextColumn();
+            var percent = (int)MathF.Round(plugin.Configuration.GetScale(category) * 100);
+            ImGui.SetNextItemWidth(244 * ImGuiHelpers.GlobalScale);
+            if (ImGui.SliderInt($"##Scale{category}", ref percent, 50, 200, "%d %%"))
+                plugin.Configuration.SetScale(category, percent / 100f);
+            if (ImGui.IsItemDeactivatedAfterEdit())
+            {
+                plugin.Configuration.Save();
+                plugin.ShowScaleTest(category);
+            }
+
+            if (ResetButton($"Scale{category}"))
+            {
+                plugin.Configuration.SetScale(category, 1f);
+                plugin.Configuration.Save();
+                plugin.ShowScaleTest(category);
+            }
+        }
 
         ImGui.EndTable();
     }

@@ -14,6 +14,22 @@ public enum FlyTextGroup
     StatusDamage = 1,
 }
 
+/// <summary>Familles de textes dont on peut régler la taille.</summary>
+public enum FlyTextCategory
+{
+    /// <summary>Tout le reste (expérience, PM, artisanat…) : taille du jeu.</summary>
+    Other,
+
+    /// <summary>Effets de statut gagnés, perdus, résistés…</summary>
+    Status,
+
+    /// <summary>Soins (et PV absorbés).</summary>
+    Healing,
+
+    /// <summary>Dégâts, sur toi comme sur la cible, avec ratés et esquives.</summary>
+    Damage,
+}
+
 /// <summary>
 /// Rangement en mémoire des groupes de textes défilants dans l'addon « _FlyText ».
 /// Le jeu ne documente rien : la disposition (10 groupes de 0x30 octets, position X/Y à 0x10, priorité 9 → 0 à 0x26)
@@ -116,6 +132,25 @@ internal static class FlyTextLayout
 
     /// <summary>Le cadre des textes sur la cible est centré sur son point d'ancrage.</summary>
     public static Vector2 CenteredFrameMin(Vector2 anchor, Vector2 size) => anchor - (size / 2);
+
+    /// <summary>Famille d'un texte d'après son type (numéros des types : FlyTextKind de Dalamud).</summary>
+    public static FlyTextCategory Categorize(int kind) => kind switch
+    {
+        // Buff, Debuff, DebuffNoEffect, BuffFading, DebuffFading, DebuffResisted, DebuffInvulnerable.
+        12 or 13 or 37 or 38 or 39 or 41 or 48 => FlyTextCategory.Status,
+
+        // Healing, HealingCrit, HpDrain.
+        21 or 34 or 45 => FlyTextCategory.Healing,
+
+        // Auto-attaques et dégâts sur la durée (0-3), dégâts (4-7), raté/esquive (8-11), Invulnerable,
+        // AutoAttackNoText3, coups critiques nommés, FullyResisted, HasNoEffect, Resist, Reflect, Reflected, CriticalHit4.
+        >= 0 and <= 11 or 28 or 33 or 35 or 36 or 43 or 44 or 49 or 53 or 54 or 56 => FlyTextCategory.Damage,
+
+        _ => FlyTextCategory.Other,
+    };
+
+    /// <summary>Taille réglable : de 50 % à 200 % de celle du jeu.</summary>
+    public static float ClampScale(float scale) => float.IsFinite(scale) ? Math.Clamp(scale, 0.5f, 2f) : 1f;
 
     private static bool IsPlausible(float value) => float.IsFinite(value) && value > -MaxCoordinate && value < MaxCoordinate;
 }

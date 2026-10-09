@@ -136,6 +136,37 @@ public class FlyTextLayoutTests
         Assert.Equal(new Vector2(900, 470), FlyTextLayout.CenteredFrameMin(new Vector2(1000, 500), new Vector2(200, 60)));
     }
 
+    [Theory]
+    [InlineData(12, FlyTextCategory.Status)] // Buff
+    [InlineData(39, FlyTextCategory.Status)] // DebuffFading
+    [InlineData(21, FlyTextCategory.Healing)] // Healing
+    [InlineData(34, FlyTextCategory.Healing)] // HealingCrit
+    [InlineData(0, FlyTextCategory.Damage)] // AutoAttackOrDot
+    [InlineData(7, FlyTextCategory.Damage)] // DamageCritDh
+    [InlineData(10, FlyTextCategory.Damage)] // Dodge
+    [InlineData(14, FlyTextCategory.Other)] // Exp
+    [InlineData(22, FlyTextCategory.Other)] // MpRegen
+    [InlineData(-1, FlyTextCategory.Other)]
+    public void SortsTextsIntoFamilies(int kind, FlyTextCategory expected)
+    {
+        Assert.Equal(expected, FlyTextLayout.Categorize(kind));
+    }
+
+    [Fact]
+    public void SizesStayBetweenHalfAndDouble()
+    {
+        var configuration = new Configuration();
+        configuration.SetScale(FlyTextCategory.Status, 3f);
+        configuration.SetScale(FlyTextCategory.Healing, 0.1f);
+        configuration.SetScale(FlyTextCategory.Damage, float.NaN);
+        configuration.SetScale(FlyTextCategory.Other, 1.5f);
+
+        Assert.Equal(2f, configuration.GetScale(FlyTextCategory.Status));
+        Assert.Equal(0.5f, configuration.GetScale(FlyTextCategory.Healing));
+        Assert.Equal(1f, configuration.GetScale(FlyTextCategory.Damage));
+        Assert.Equal(1f, configuration.GetScale(FlyTextCategory.Other));
+    }
+
     [Fact]
     public void SavedPositionsSurviveTheConfigurationFile()
     {

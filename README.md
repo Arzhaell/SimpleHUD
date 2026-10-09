@@ -14,6 +14,8 @@ affichés sur ton personnage, directement depuis la **configuration de l'ATH**.
   textes. Au lâcher, des textes de test défilent à la nouvelle place.
 - Au pixel près : la fenêtre du plugin donne X et Y de chaque cadre, avec des boutons − / + (Ctrl+clic : par 10).
 - Clic droit sur un cadre, ou bouton ↺ : retour à la position d'origine du jeu.
+- **Taille** : la fenêtre règle la taille des buffs / débuffs, des soins et des dégâts (sur toi comme sur la
+  cible), de 50 % à 200 % de la taille du jeu. Le rebond des critiques est gardé.
 - **Tester tous les textes** fait défiler sur ton personnage tous les types de textes : soins, soins critiques,
   statuts bénéfiques et néfastes gagnés puis perdus (de vrais statuts du jeu, tirés au hasard à chaque essai),
   dégâts, critiques, coups directs, auto-attaques, esquives…
