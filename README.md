@@ -29,6 +29,14 @@ affichés sur ton personnage, directement depuis la **configuration de l'ATH**.
   dégâts, critiques, coups directs, auto-attaques, esquives…
 - `/flytextmod` ouvre la fenêtre hors de l'éditeur d'ATH ; les cadres s'affichent tant qu'elle est ouverte.
 
+### Positions de l'ATH du jeu (essai)
+- Dans la configuration de l'ATH, chaque élément du jeu (barres de raccourcis, équipe, cible, boussole…) affiche
+  dans son coin haut-gauche sa position à l'écran en pixels ; l'élément sélectionné ressort en jaune.
+- La fenêtre du plugin (section « Positions de l'ATH du jeu ») les liste tous, avec une case pour masquer les
+  étiquettes. Pour l'instant, c'est seulement de l'affichage : rien n'est modifié dans tes dispositions.
+- Pour préparer le réglage au pixel, le plugin note dans le journal de Dalamud (lignes `[hud]`) ce que fait
+  l'éditeur, seulement quand il est ouvert et que quelque chose change.
+
 Les positions sont enregistrées en proportion de l'écran : elles suivent un changement de résolution.
 Quand le plugin est désactivé, les textes reprennent leur place d'origine.
 

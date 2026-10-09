@@ -62,7 +62,62 @@ internal sealed class ConfigWindow : Window
             plugin.ResetAll();
 
         ImGui.Separator();
+        DrawHud();
+
+        ImGui.Separator();
         DrawLanguage();
+    }
+
+    // Positions des éléments de l'ATH du jeu (lecture seule) : coin haut-gauche de chaque élément affiché, en pixels.
+    private void DrawHud()
+    {
+        if (!ImGui.CollapsingHeader(Loc.T("Game HUD positions", "Positions de l'ATH du jeu")))
+            return;
+
+        var show = plugin.Configuration.ShowHudPositions;
+        if (ImGui.Checkbox(Loc.T("Show them in the HUD layout editor", "Les afficher dans la configuration de l'ATH"), ref show))
+        {
+            plugin.Configuration.ShowHudPositions = show;
+            plugin.Configuration.Save();
+        }
+
+        var elements = plugin.Hud.Elements;
+        if (elements.Length == 0)
+        {
+            ImGui.TextColored(ImGuiColors.DalamudGrey, Loc.T("No HUD element on screen.", "Aucun élément de l'ATH à l'écran."));
+            return;
+        }
+
+        // Une douzaine de lignes visibles, les autres en faisant défiler.
+        var scale = ImGuiHelpers.GlobalScale;
+        var rowHeight = ImGui.GetTextLineHeight() + (2 * ImGui.GetStyle().CellPadding.Y);
+        var size = new Vector2(460 * scale, (Math.Min(elements.Length, 12) + 1) * rowHeight);
+        if (!ImGui.BeginTable("##Hud", 3, ImGuiTableFlags.ScrollY | ImGuiTableFlags.RowBg, size))
+            return;
+
+        ImGui.TableSetupScrollFreeze(0, 1);
+        ImGui.TableSetupColumn(Loc.T("Element", "Élément"), ImGuiTableColumnFlags.WidthStretch);
+        ImGui.TableSetupColumn("X", ImGuiTableColumnFlags.WidthFixed, 60 * scale);
+        ImGui.TableSetupColumn("Y", ImGuiTableColumnFlags.WidthFixed, 60 * scale);
+        ImGui.TableHeadersRow();
+
+        // L'élément sélectionné dans l'éditeur d'ATH ressort en jaune, comme son étiquette.
+        foreach (var element in elements)
+        {
+            ImGui.TableNextRow();
+            ImGui.TableNextColumn();
+            if (element.Selected)
+                ImGui.TextColored(PlacementOverlay.Accent, element.Name);
+            else
+                ImGui.TextUnformatted(element.Name);
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted($"{element.X}");
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted($"{element.Y}");
+        }
+
+        ImGui.EndTable();
     }
 
     // Disposition des textes sur le personnage : un, deux ou trois cadres.

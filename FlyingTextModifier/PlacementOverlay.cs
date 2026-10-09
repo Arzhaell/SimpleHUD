@@ -9,7 +9,7 @@ internal sealed class PlacementOverlay
 {
     private static readonly Vector2 FrameSize = new(230, 76);
 
-    private static readonly Vector4 Accent = new(1f, 0.82f, 0.35f, 1f);
+    internal static readonly Vector4 Accent = new(1f, 0.82f, 0.35f, 1f);
 
     private const ImGuiWindowFlags FrameFlags = ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoBackground
         | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoFocusOnAppearing

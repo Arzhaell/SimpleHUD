@@ -13,7 +13,7 @@ public sealed class Plugin : IDalamudPlugin
     private const string CommandName = "/flytextmod";
 
     // Écran de l'éditeur d'ATH (« Configuration de l'ATH »), affiché tant que l'éditeur est ouvert.
-    private const string HudLayoutAddonName = "_HudLayoutScreen";
+    internal const string HudLayoutAddonName = "_HudLayoutScreen";
 
     [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
@@ -33,6 +33,8 @@ public sealed class Plugin : IDalamudPlugin
     private readonly TestTexts testTexts = new();
     private readonly FlyTextNodes nodes;
     private readonly FlyTextHider hider;
+    private readonly HudLabels hudLabels;
+    private readonly HudDiagnostics hudDiagnostics = new();
 
     // La fenêtre s'ouvre avec l'éditeur d'ATH (pour les réglages au pixel) et se referme avec lui.
     private bool hudLayoutWasOpen;
@@ -53,6 +55,8 @@ public sealed class Plugin : IDalamudPlugin
 
         configWindow = new ConfigWindow(this);
         overlay = new PlacementOverlay(this);
+        Hud = new HudElements(() => IsPlacing);
+        hudLabels = new HudLabels(this);
         windowSystem.AddWindow(configWindow);
         PluginInterface.UiBuilder.Draw += OnDraw;
         PluginInterface.UiBuilder.OpenConfigUi += configWindow.Toggle;
@@ -65,6 +69,12 @@ public sealed class Plugin : IDalamudPlugin
     public Configuration Configuration { get; }
 
     internal FlyTextGroups Groups { get; }
+
+    /// <summary>Position des éléments de l'ATH du jeu (lecture seule).</summary>
+    internal HudElements Hud { get; }
+
+    /// <summary>Vrai tant que l'éditeur d'ATH du jeu est ouvert.</summary>
+    public bool HudLayoutOpen => hudLayoutWasOpen;
 
     /// <summary>Les cadres sont affichés dans l'éditeur d'ATH, et tant que la fenêtre du plugin est ouverte.</summary>
     public bool IsPlacing => configWindow.IsOpen || hudLayoutWasOpen;
@@ -218,6 +228,8 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenMainUi -= configWindow.Toggle;
         windowSystem.RemoveAllWindows();
         hider.Dispose();
+        Hud.Dispose();
+        hudDiagnostics.Dispose();
         nodes.Dispose();
         Groups.Dispose();
 #if DEBUG
@@ -268,6 +280,7 @@ public sealed class Plugin : IDalamudPlugin
     private void OnDraw()
     {
         FollowHudLayout();
+        hudLabels.Draw();
         windowSystem.Draw();
         overlay.Draw();
     }
