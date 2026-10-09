@@ -221,16 +221,14 @@ internal sealed unsafe class FlyTextNodes : IDisposable
         if (tracked.TryGetValue((int)offset, out var previous) && previous.Node == node)
             Restore((AtkResNode*)node, previous);
 
-        var entry = new Tracked
+        // Pas encore réglé : à sa création le texte n'a pas de place (0, 0) et le jeu le place ensuite à partir de sa
+        // position actuelle ; un décalage posé maintenant serait gardé par le jeu puis ajouté une seconde fois.
+        tracked[(int)offset] = new Tracked
         {
             Category = FlyTextLayout.Categorize(kind),
             Actor = currentActor,
             Node = node,
         };
-        tracked[(int)offset] = entry;
-
-        // Réglé dès sa création, pour qu'il apparaisse directement à la bonne taille et à la bonne place.
-        Apply((AtkResNode*)node, entry, groups.StatusShift(), (int)offset);
     }
 
     // Addon détruit (déconnexion…) : ses nœuds n'existent plus.
