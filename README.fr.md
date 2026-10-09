@@ -42,7 +42,8 @@ Anciennement « Flying Text Modifier » (jusqu'à la version 1.1.0).
   les dégâts infligés (sur tes cibles) et les autres textes (EXP, objets…), la fenêtre permet de les masquer ou de
   régler leur taille, de 50 % à 200 % de la taille du jeu. Le rebond des critiques est gardé.
 - **Valeur des boucliers** (case à cocher) : quand ton bouclier augmente, sa valeur défile en jaune avec les soins
-  (même taille, même case Afficher). Le jeu ne donne le bouclier qu'en part de tes PV max : la valeur est approchée,
+  (même taille, même case Afficher), avec le nom du sort qui le donne (Traité du réconfort, Haima… y compris quand
+  le bouclier se renouvelle seul). Le jeu ne donne le bouclier qu'en part de tes PV max : la valeur est approchée,
   à 1 % de tes PV près.
 - **Tester tous les textes** fait défiler sur ton personnage tous les types de textes : soins, soins critiques,
   statuts bénéfiques et néfastes gagnés puis perdus (de vrais statuts du jeu, tirés au hasard à chaque essai),
