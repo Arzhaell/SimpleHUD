@@ -226,6 +226,29 @@ public class FlyTextLayoutTests
     }
 
     [Fact]
+    public void ScrollingKeepsTheShift()
+    {
+        // Relevé en jeu : le texte décalé à (1620, 627) a défilé de 2 vers le bas, sans changer de X.
+        Assert.False(FlyTextLayout.GameReplacedText(new Vector2(1620, 629), new Vector2(1620, 627), new Vector2(337, -143)));
+    }
+
+    [Fact]
+    public void ReplacingPutsTheTextBackInTheGameColumn()
+    {
+        // Relevé en jeu : réempilé d'un coup, le texte revient dans la colonne du jeu (X = 1283).
+        Assert.True(FlyTextLayout.GameReplacedText(new Vector2(1283, 1152), new Vector2(1620, 1010), new Vector2(337, -143)));
+    }
+
+    [Fact]
+    public void PurelyVerticalShiftUsesTheJump()
+    {
+        var shift = new Vector2(0, -150);
+
+        Assert.False(FlyTextLayout.GameReplacedText(new Vector2(1283, 452), new Vector2(1283, 450), shift));
+        Assert.True(FlyTextLayout.GameReplacedText(new Vector2(1283, 600), new Vector2(1283, 450), shift));
+    }
+
+    [Fact]
     public void OldSettingsKeepTheirTwoBlocks()
     {
         var moved = new Configuration { Version = 0 };

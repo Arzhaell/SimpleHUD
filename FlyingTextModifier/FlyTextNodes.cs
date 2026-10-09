@@ -13,11 +13,10 @@ namespace FlyingTextModifier;
 /// <summary>
 /// Réglages texte par texte : taille par famille (statuts, soins, dégâts), et déplacement des statuts du personnage
 /// quand ils ont leur propre bloc. Chaque texte est repéré au moment où le jeu le crée (son type et le personnage
-/// qui le reçoit sont alors connus).
-/// La taille et la place d'un texte sont aussi l'état de son animation pour le jeu (il le fait défiler à partir de
-/// sa place actuelle). Le plugin ne les modifie donc que pour l'affichage : il les applique juste après la mise à
-/// jour des textes par le jeu, et remet les valeurs du jeu juste avant la mise à jour suivante. Le dessin a lieu
-/// entre les deux (constaté en jeu : remettre les valeurs dès le début de l'image annulait l'effet à l'écran).
+/// qui le reçoit sont alors connus), puis ajusté après chaque mise à jour du jeu (qui a lieu à chaque image).
+/// Constaté en jeu : le jeu calcule l'affichage pendant sa mise à jour, à partir des valeurs des nœuds ; nos réglages
+/// restent donc en place (une valeur retirée avant la mise à jour n'apparaît jamais). Le jeu fait défiler un texte à
+/// partir de sa place actuelle, ce qui garde le décalage ; quand il le replace ou change sa taille, on réapplique.
 /// </summary>
 internal sealed unsafe class FlyTextNodes : IDisposable
 {
@@ -48,14 +47,13 @@ internal sealed unsafe class FlyTextNodes : IDisposable
         public uint? Actor;
         public nint Node;
 
-        // Vrai entre l'application de nos réglages et la remise des valeurs du jeu.
-        public bool Applied;
-
-        // Valeurs du jeu, et valeurs écrites par le plugin pour l'affichage.
+        // Taille du jeu et dernière taille écrite.
         public Vector2 GameScale;
-        public Vector2 GamePosition;
-        public Vector2 WrittenScale;
-        public Vector2 WrittenPosition;
+        public Vector2? WrittenScale;
+
+        // Dernière place écrite et décalage qu'elle contenait.
+        public Vector2? WrittenPosition;
+        public Vector2 AppliedShift;
 
 #if DEBUG
         // Relevé : nombre de lignes déjà notées pour ce texte.
@@ -73,14 +71,12 @@ internal sealed unsafe class FlyTextNodes : IDisposable
             (nint)AddonFlyText.Addresses.CreateFlyText.Value, OnCreateFlyText);
         addHook.Enable();
         createHook.Enable();
-        Plugin.AddonLifecycle.RegisterListener(AddonEvent.PreUpdate, AddonName, OnAddonPreUpdate);
         Plugin.AddonLifecycle.RegisterListener(AddonEvent.PostUpdate, AddonName, OnAddonPostUpdate);
         Plugin.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, AddonName, OnAddonFinalize);
     }
 
     public void Dispose()
     {
-        Plugin.AddonLifecycle.UnregisterListener(AddonEvent.PreUpdate, AddonName, OnAddonPreUpdate);
         Plugin.AddonLifecycle.UnregisterListener(AddonEvent.PostUpdate, AddonName, OnAddonPostUpdate);
         Plugin.AddonLifecycle.UnregisterListener(AddonEvent.PreFinalize, AddonName, OnAddonFinalize);
         createHook.Dispose();
@@ -89,19 +85,20 @@ internal sealed unsafe class FlyTextNodes : IDisposable
         // Plugin désactivé : les textes encore à l'écran reprennent la taille et la place du jeu.
         var addon = (AtkUnitBase*)Plugin.GameGui.GetAddonByName(AddonName).Address;
         if (addon != null)
-            RestoreAll(addon);
+        {
+            CollectLiveNodes(addon);
+            foreach (var (offset, entry) in tracked)
+            {
+                var node = LiveNode(addon, offset, entry);
+                if (node != null)
+                    Restore(node, entry);
+            }
+        }
+
         tracked.Clear();
     }
 
-    // Juste avant que le jeu ne fasse avancer ses textes : il retrouve ses propres valeurs.
-    private void OnAddonPreUpdate(AddonEvent type, AddonArgs args)
-    {
-        var addon = (AtkUnitBase*)args.Addon.Address;
-        if (addon != null && tracked.Count != 0)
-            RestoreAll(addon);
-    }
-
-    // Juste après la mise à jour du jeu (à chaque image) : taille du jeu × taille de la famille, place du jeu + écart du bloc des statuts.
+    // Après chaque mise à jour du jeu : taille du jeu × taille de la famille, place du jeu + écart du bloc des statuts.
     private void OnAddonPostUpdate(AddonEvent type, AddonArgs args)
     {
         var addon = (AtkUnitBase*)args.Addon.Address;
@@ -110,33 +107,10 @@ internal sealed unsafe class FlyTextNodes : IDisposable
 
         var statusShift = groups.StatusShift();
         CollectLiveNodes(addon);
-        foreach (var (offset, entry) in tracked)
-        {
-            var node = LiveNode(addon, offset, entry);
-            if (node == null)
-                continue;
-
-            Restore(node, entry);
-            entry.GameScale = new Vector2(node->ScaleX, node->ScaleY);
-            entry.GamePosition = new Vector2(node->X, node->Y);
-            entry.WrittenScale = entry.GameScale * configuration.GetScale(entry.Category);
-            entry.WrittenPosition = entry.GamePosition + ShiftFor(entry, statusShift);
-            if (entry.WrittenScale != entry.GameScale)
-                node->SetScale(entry.WrittenScale.X, entry.WrittenScale.Y);
-            if (entry.WrittenPosition != entry.GamePosition)
-                node->SetPositionFloat(entry.WrittenPosition.X, entry.WrittenPosition.Y);
-            entry.Applied = true;
-            Log("Apply", offset, node, entry);
-        }
-    }
-
-    // Remet les valeurs du jeu sur tous les textes suivis, et oublie ceux dont la fiche désigne un autre nœud.
-    private void RestoreAll(AtkUnitBase* addon)
-    {
-        CollectLiveNodes(addon);
         stale.Clear();
         foreach (var (offset, entry) in tracked)
         {
+            // La fiche désigne un autre nœud : le texte est terminé, on l'oublie.
             if (!StillTracks(addon, offset, entry))
             {
                 stale.Add(offset);
@@ -146,32 +120,51 @@ internal sealed unsafe class FlyTextNodes : IDisposable
             // Nœud absent de la liste de l'addon (texte en attente, caché…) : on n'y écrit pas, mais on le garde.
             var node = LiveNode(addon, offset, entry);
             if (node != null)
-            {
-                Log("Restore", offset, node, entry);
-                Restore(node, entry);
-            }
+                Apply(node, entry, statusShift, offset);
         }
 
         foreach (var offset in stale)
             tracked.Remove(offset);
     }
 
-    // Remet une valeur du jeu seulement si le nœud porte encore celle qu'on a écrite : sinon le jeu l'a changée entre-temps.
-    private static void Restore(AtkResNode* node, Tracked entry)
+    private void Apply(AtkResNode* node, Tracked entry, Vector2 statusShift, int offset)
     {
-        if (!entry.Applied)
+        // Taille différente de celle qu'on a écrite : le jeu vient de la changer (création, rebond).
+        var scale = new Vector2(node->ScaleX, node->ScaleY);
+        if (entry.WrittenScale != scale)
+            entry.GameScale = scale;
+
+        var wantedScale = entry.GameScale * configuration.GetScale(entry.Category);
+        if (scale != wantedScale)
+            node->SetScale(wantedScale.X, wantedScale.Y);
+        entry.WrittenScale = wantedScale;
+
+        // Seuls les statuts du personnage changent de bloc ; ceux des autres restent sur eux.
+        var shift = entry.Category == FlyTextCategory.Status && entry.Actor == LocalPlayerActor ? statusShift : Vector2.Zero;
+        if (shift == Vector2.Zero && entry.AppliedShift == Vector2.Zero)
             return;
 
-        if (node->ScaleX == entry.WrittenScale.X && node->ScaleY == entry.WrittenScale.Y && entry.WrittenScale != entry.GameScale)
-            node->SetScale(entry.GameScale.X, entry.GameScale.Y);
-        if (node->X == entry.WrittenPosition.X && node->Y == entry.WrittenPosition.Y && entry.WrittenPosition != entry.GamePosition)
-            node->SetPositionFloat(entry.GamePosition.X, entry.GamePosition.Y);
-        entry.Applied = false;
+        // Place du jeu : le texte a défilé depuis notre place (le décalage y est encore), ou le jeu l'a replacé.
+        var position = new Vector2(node->X, node->Y);
+        var replaced = entry.WrittenPosition is not { } written || FlyTextLayout.GameReplacedText(position, written, entry.AppliedShift);
+        var gamePosition = replaced ? position : position - entry.AppliedShift;
+        Log(replaced ? "Replaced" : "Scrolled", offset, position, entry);
+
+        var wanted = gamePosition + shift;
+        if (position != wanted)
+            node->SetPositionFloat(wanted.X, wanted.Y);
+        entry.WrittenPosition = wanted;
+        entry.AppliedShift = shift;
     }
 
-    // Seuls les statuts du personnage changent de bloc ; ceux des autres restent sur eux.
-    private static Vector2 ShiftFor(Tracked entry, Vector2 statusShift) =>
-        entry.Category == FlyTextCategory.Status && entry.Actor == LocalPlayerActor ? statusShift : Vector2.Zero;
+    // Remet la taille et la place du jeu, si le nœud porte encore nos valeurs.
+    private static void Restore(AtkResNode* node, Tracked entry)
+    {
+        if (entry.WrittenScale is { } scale && node->ScaleX == scale.X && node->ScaleY == scale.Y)
+            node->SetScale(entry.GameScale.X, entry.GameScale.Y);
+        if (entry.WrittenPosition is { } position && node->X == position.X && node->Y == position.Y && entry.AppliedShift != Vector2.Zero)
+            node->SetPositionFloat(position.X - entry.AppliedShift.X, position.Y - entry.AppliedShift.Y);
+    }
 
     // Le jeu crée les textes d'un acteur à la fois : on retient lequel pour les textes créés pendant ce temps.
     private void OnAddFlyText(
@@ -228,12 +221,16 @@ internal sealed unsafe class FlyTextNodes : IDisposable
         if (tracked.TryGetValue((int)offset, out var previous) && previous.Node == node)
             Restore((AtkResNode*)node, previous);
 
-        tracked[(int)offset] = new Tracked
+        var entry = new Tracked
         {
             Category = FlyTextLayout.Categorize(kind),
             Actor = currentActor,
             Node = node,
         };
+        tracked[(int)offset] = entry;
+
+        // Réglé dès sa création, pour qu'il apparaisse directement à la bonne taille et à la bonne place.
+        Apply((AtkResNode*)node, entry, groups.StatusShift(), (int)offset);
     }
 
     // Addon détruit (déconnexion…) : ses nœuds n'existent plus.
@@ -271,16 +268,18 @@ internal sealed unsafe class FlyTextNodes : IDisposable
 
     // Relevé (version de développement) : les premières images de chaque statut déplacé.
     [System.Diagnostics.Conditional("DEBUG")]
-    private static void Log(string phase, int offset, AtkResNode* node, Tracked entry)
+    private static void Log(string phase, int offset, Vector2 position, Tracked entry)
     {
 #if DEBUG
-        if (entry.Category != FlyTextCategory.Status || entry.Actor != LocalPlayerActor || entry.Logged >= 12)
+        if (entry.Logged >= 30 && phase != "Replaced")
+            return;
+        if (entry.Logged >= 60)
             return;
 
         entry.Logged++;
-        Plugin.Log.Information(
-            "[diag] node addon+{Offset:X} {Phase} pos=({X:F0},{Y:F0}) game=({GX:F0},{GY:F0}) written=({WX:F0},{WY:F0})",
-            offset, phase, node->X, node->Y, entry.GamePosition.X, entry.GamePosition.Y, entry.WrittenPosition.X, entry.WrittenPosition.Y);
+        Plugin.Log.Information("[diag] node addon+{Offset:X} {Phase} pos=({X:F0},{Y:F0}) written={Written} shift=({SX:F0},{SY:F0})",
+            offset, phase, position.X, position.Y,
+            entry.WrittenPosition is { } w ? $"({w.X:F0},{w.Y:F0})" : "-", entry.AppliedShift.X, entry.AppliedShift.Y);
 #endif
     }
 }

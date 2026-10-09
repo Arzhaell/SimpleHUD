@@ -201,6 +201,20 @@ internal static class FlyTextLayout
     /// <summary>Première place du bloc des statuts quand on le sépare : juste au-dessus des dégâts.</summary>
     public static Vector2 DefaultStatusPosition(Vector2 statusDamage) => Clamp(statusDamage + new Vector2(0, -0.1f));
 
+    /// <summary>
+    /// Vrai si le jeu a replacé d'un coup un texte qu'on avait décalé (le décalage est alors perdu, à remettre).
+    /// Constaté en jeu : quand il fait défiler un texte, le jeu ne change que sa hauteur, à partir de la place où il
+    /// se trouve (le décalage reste) ; quand il le replace, il remet aussi sa position horizontale. Si le décalage
+    /// est purement vertical, un écart de hauteur supérieur à la moitié du décalage trahit le replacement.
+    /// </summary>
+    public static bool GameReplacedText(Vector2 current, Vector2 written, Vector2 appliedShift)
+    {
+        if (appliedShift.X != 0)
+            return current.X != written.X;
+
+        return MathF.Abs(current.Y - written.Y) > MathF.Max(4f, MathF.Abs(appliedShift.Y) / 2);
+    }
+
     /// <summary>Famille d'un texte d'après son type (numéros des types : FlyTextKind de Dalamud).</summary>
     public static FlyTextCategory Categorize(int kind) => kind switch
     {
