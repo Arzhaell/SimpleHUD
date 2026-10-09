@@ -37,9 +37,10 @@ le calque des textes défilants et compense la position des deux groupes du pers
 
 ## Compiler et tester
 - `dotnet test FlyingTextModifier.Tests` : tests de la logique (recherche en mémoire, conversions, réglages).
-- `dotnet build FlyingTextModifier` : la DLL de `FlyingTextModifier\bin\Debug\` est chargée par Dalamud comme
-  plugin de développement. La version Debug note aussi dans le journal de Dalamud (lignes `[diag]`) l'état des
-  groupes de textes, pour étude.
+- `dotnet build FlyingTextModifier -c Release` : la DLL de `FlyingTextModifier\bin\Release\` est celle que Dalamud
+  charge comme plugin de développement (rechargée toute seule, même jeu ouvert).
+- La version Debug (`dotnet build FlyingTextModifier`) note en plus dans le journal de Dalamud (lignes `[diag]`)
+  l'état des groupes et de chaque texte, pour la mise au point. Elle écrit beaucoup : à ne charger que pour étudier.
 
 Projet local, non publié.
 
