@@ -29,6 +29,9 @@ internal sealed unsafe class FlyTextGroups : IDisposable
     // Groupes dont on a écrit la position à l'image précédente (à remettre d'origine quand on n'y touche plus).
     private readonly bool[] managed = new bool[FlyTextLayout.Groups.Length];
 
+    // Hauteur de chaque groupe dans le calque des textes (celle que lisent ses nœuds), à la dernière image.
+    private readonly float?[] layerY = new float?[FlyTextLayout.Groups.Length];
+
     private int arrayOffset = -1;
     private bool layerShifted;
 
@@ -73,6 +76,13 @@ internal sealed unsafe class FlyTextGroups : IDisposable
             if (gameDefaults[(int)group] is { } position)
                 current[(int)group] = position;
         }
+    }
+
+    /// <summary>Hauteur du groupe dans le calque des textes, comme celle de leurs nœuds (null tant qu'elle est inconnue).</summary>
+    public float? LayerY(FlyTextGroup group)
+    {
+        lock (sync)
+            return layerY[(int)group];
     }
 
     /// <summary>Position d'origine du groupe dans le jeu (fraction de l'écran), ou null tant qu'elle est inconnue.</summary>
@@ -199,6 +209,7 @@ internal sealed unsafe class FlyTextGroups : IDisposable
 
                 managed[index] = custom || shift != Vector2.Zero;
                 current[index] = FlyTextLayout.ToRatio(*position + shift, screen);
+                layerY[index] = position->Y;
             }
         }
     }

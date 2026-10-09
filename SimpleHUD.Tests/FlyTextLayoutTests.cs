@@ -264,6 +264,33 @@ public class FlyTextLayoutTests
     }
 
     [Fact]
+    public void GapsAreMeasuredOnTheGameStack()
+    {
+        // Relevé en jeu : EXP et statut arrivés ensemble ; l'EXP (plus récente) en haut à 908,3, le statut dessous à 952,3.
+        Assert.Equal([44f, null], FlyTextLayout.MeasuredGaps([908.3f, 952.3f], null).Select(gap => gap is { } g ? MathF.Round(g, 1) : (float?)null));
+
+        // Relevé en jeu : un dégât arrivé seul à 908,3 a poussé les plus anciens textes juste dessous, à 928,3.
+        Assert.Equal(20f, FlyTextLayout.MeasuredGaps([908.3f], 928.3f)[0]!.Value, 3);
+        Assert.Null(FlyTextLayout.MeasuredGaps([908.3f], null)[0]);
+    }
+
+    [Fact]
+    public void EachFrameStacksItsOwnTexts()
+    {
+        var places = new float[2];
+
+        // Deux statuts arrivés ensemble : l'un au départ, l'autre dessous ; le plus récent des anciens est assez bas.
+        var push = FlyTextLayout.StackArrivals(916.4f, [23f, 23f], 980f, places);
+        Assert.Equal([916.4f, 939.4f], places.Select(place => MathF.Round(place, 1)));
+        Assert.Equal(0f, push);
+
+        // Un statut arrivé seul, le plus récent des anciens statuts 10 px sous le départ : il descend de 13 px.
+        push = FlyTextLayout.StackArrivals(916.4f, [23f], 926.4f, places);
+        Assert.Equal(13f, push, 3);
+        Assert.Equal(0f, FlyTextLayout.StackArrivals(916.4f, [23f], null, places));
+    }
+
+    [Fact]
     public void APushIsWhatExceedsTheUsualScroll()
     {
         // Relevé en jeu : un statut qui défilait de 1,35 px par image saute de 755,7 à 928,3 à l'arrivée d'un dégât.

@@ -1,5 +1,6 @@
 using System;
 using System.Buffers.Binary;
+using System.Collections.Generic;
 using System.Numerics;
 
 namespace SimpleHUD;
@@ -252,6 +253,42 @@ internal static class FlyTextLayout
     {
         var push = moved - usualStep;
         return push > PushThreshold ? push : 0f;
+    }
+
+    /// <summary>
+    /// Écart que chaque texte arrivé pendant une image laisse sous lui, mesuré sur l'empilement du jeu. Constaté en jeu :
+    /// les textes arrivés ensemble sont empilés du plus récent (en haut) au plus ancien, chacun juste sous le précédent ;
+    /// les plus anciens textes du bloc, s'ils ont été poussés, viennent juste sous le dernier. <paramref name="arrivals"/>
+    /// : hauteur des textes arrivés, de haut en bas. Null là où l'écart ne se voit pas (dernier texte, rien poussé).
+    /// </summary>
+    public static float?[] MeasuredGaps(IReadOnlyList<float> arrivals, float? pushedBelow)
+    {
+        var gaps = new float?[arrivals.Count];
+        for (var i = 0; i < arrivals.Count; i++)
+        {
+            var next = i + 1 < arrivals.Count ? arrivals[i + 1] : pushedBelow;
+            if (next is { } below && below > arrivals[i])
+                gaps[i] = below - arrivals[i];
+        }
+
+        return gaps;
+    }
+
+    /// <summary>
+    /// Empile les textes d'un cadre arrivés pendant une image, comme le ferait le jeu si le cadre était seul : le plus
+    /// récent à son point de départ, chacun des suivants sous le précédent. Renvoie la poussée à donner aux plus anciens
+    /// textes du cadre pour que le plus récent d'entre eux (<paramref name="newestOlder"/>) reste sous le dernier arrivé.
+    /// </summary>
+    public static float StackArrivals(float start, IReadOnlyList<float> gaps, float? newestOlder, float[] places)
+    {
+        var cursor = start;
+        for (var i = 0; i < gaps.Count; i++)
+        {
+            places[i] = cursor;
+            cursor += gaps[i];
+        }
+
+        return newestOlder is { } older ? MathF.Max(0f, cursor - older) : 0f;
     }
 
     /// <summary>
