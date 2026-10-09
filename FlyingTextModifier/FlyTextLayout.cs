@@ -14,6 +14,33 @@ public enum FlyTextGroup
     StatusDamage = 1,
 }
 
+/// <summary>Disposition des textes affichés sur le personnage.</summary>
+public enum PersonalLayout
+{
+    /// <summary>Un seul bloc : soins et statuts/dégâts bougent ensemble, côte à côte comme dans le jeu.</summary>
+    Grouped,
+
+    /// <summary>Soins d'un côté, statuts et dégâts subis de l'autre (les deux blocs du jeu).</summary>
+    HealingSeparate,
+
+    /// <summary>Statuts d'un côté, soins et dégâts subis ensemble de l'autre.</summary>
+    StatusSeparate,
+
+    /// <summary>Soins, statuts et dégâts subis : trois blocs.</summary>
+    AllSeparate,
+}
+
+/// <summary>Cadre à déplacer dans l'éditeur d'ATH pour les textes sur le personnage.</summary>
+public enum PersonalBlock
+{
+    All,
+    Healing,
+    StatusDamage,
+    Status,
+    HealingDamage,
+    Damage,
+}
+
 /// <summary>Familles de textes dont on peut régler la taille.</summary>
 public enum FlyTextCategory
 {
@@ -130,8 +157,64 @@ internal static class FlyTextLayout
         ? new Vector2(anchor.X - size.X, anchor.Y - (size.Y / 2))
         : new Vector2(anchor.X, anchor.Y - (size.Y / 2));
 
+    /// <summary>Cadre qui englobe les deux blocs du jeu quand ils bougent ensemble : renvoie son coin haut-gauche et sa taille.</summary>
+    public static (Vector2 Min, Vector2 Size) LinkedFrame(Vector2 healingAnchor, Vector2 statusDamageAnchor, Vector2 size)
+    {
+        var healingMin = FrameMin(FlyTextGroup.Healing, healingAnchor, size);
+        var statusMin = FrameMin(FlyTextGroup.StatusDamage, statusDamageAnchor, size);
+        var min = Vector2.Min(healingMin, statusMin);
+        var max = Vector2.Max(healingMin + size, statusMin + size);
+        return (min, max - min);
+    }
+
     /// <summary>Le cadre des textes sur la cible est centré sur son point d'ancrage.</summary>
     public static Vector2 CenteredFrameMin(Vector2 anchor, Vector2 size) => anchor - (size / 2);
+
+    /// <summary>Cadres affichés pour une disposition.</summary>
+    public static PersonalBlock[] Blocks(PersonalLayout layout) => layout switch
+    {
+        PersonalLayout.Grouped => [PersonalBlock.All],
+        PersonalLayout.HealingSeparate => [PersonalBlock.Healing, PersonalBlock.StatusDamage],
+        PersonalLayout.StatusSeparate => [PersonalBlock.Status, PersonalBlock.HealingDamage],
+        _ => [PersonalBlock.Healing, PersonalBlock.Status, PersonalBlock.Damage],
+    };
+
+    /// <summary>Vrai si les statuts ont leur propre bloc (le jeu les range avec les dégâts : le plugin les sort un par un).</summary>
+    public static bool SeparatesStatuses(PersonalLayout layout) => layout is PersonalLayout.StatusSeparate or PersonalLayout.AllSeparate;
+
+    /// <summary>Vrai si les deux blocs du jeu bougent ensemble.</summary>
+    public static bool LinksGroups(PersonalLayout layout) => layout is PersonalLayout.Grouped or PersonalLayout.StatusSeparate;
+
+    /// <summary>Blocs du jeu déplacés par un cadre (aucun pour les statuts, qui ont leur propre point d'ancrage).</summary>
+    public static FlyTextGroup[] GroupsOf(PersonalBlock block) => block switch
+    {
+        PersonalBlock.All or PersonalBlock.HealingDamage => [FlyTextGroup.Healing, FlyTextGroup.StatusDamage],
+        PersonalBlock.Healing => [FlyTextGroup.Healing],
+        PersonalBlock.StatusDamage or PersonalBlock.Damage => [FlyTextGroup.StatusDamage],
+        _ => [],
+    };
+
+    /// <summary>Écart entre les deux blocs du jeu quand ils sont regroupés : celui d'origine (soins à gauche).</summary>
+    public static Vector2 RegroupedHealing(Vector2 statusDamage, Vector2 defaultHealing, Vector2 defaultStatusDamage) =>
+        Clamp(statusDamage + (defaultHealing - defaultStatusDamage));
+
+    /// <summary>Première place du bloc des statuts quand on le sépare : juste au-dessus des dégâts.</summary>
+    public static Vector2 DefaultStatusPosition(Vector2 statusDamage) => Clamp(statusDamage + new Vector2(0, -0.1f));
+
+    /// <summary>
+    /// Position que le jeu donne à un texte qu'on décale. Si le jeu l'a bougé depuis notre dernière écriture, il a pu
+    /// soit lui donner une nouvelle position (on la prend telle quelle), soit le faire avancer depuis la nôtre
+    /// (on retire alors notre décalage) : la plus proche des deux hypothèses l'emporte, sans quoi le décalage s'empilerait.
+    /// </summary>
+    public static Vector2 GamePosition(Vector2 current, Vector2 previousGame, Vector2 written, Vector2 appliedShift)
+    {
+        if (current == written)
+            return previousGame;
+
+        var movedFromGame = (current - previousGame).LengthSquared();
+        var movedFromOurs = (current - written).LengthSquared();
+        return movedFromOurs < movedFromGame ? current - appliedShift : current;
+    }
 
     /// <summary>Famille d'un texte d'après son type (numéros des types : FlyTextKind de Dalamud).</summary>
     public static FlyTextCategory Categorize(int kind) => kind switch

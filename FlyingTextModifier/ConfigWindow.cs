@@ -42,6 +42,7 @@ internal sealed class ConfigWindow : Window
         }
 
         ImGui.Spacing();
+        DrawLayout();
         DrawPositions();
 
         ImGui.Spacing();
@@ -64,7 +65,31 @@ internal sealed class ConfigWindow : Window
         DrawLanguage();
     }
 
-    // Positions au pixel près : X/Y à l'écran pour les groupes du personnage, écart avec la cible pour les textes sur la cible.
+    // Disposition des textes sur le personnage : un, deux ou trois cadres.
+    private void DrawLayout()
+    {
+        var current = plugin.Configuration.Layout;
+        ImGui.SetNextItemWidth(244 * ImGuiHelpers.GlobalScale);
+        if (ImGui.BeginCombo(Loc.T("Texts on you", "Textes sur toi"), Plugin.LayoutName(current)))
+        {
+            foreach (var layout in Enum.GetValues<PersonalLayout>())
+            {
+                if (ImGui.Selectable(Plugin.LayoutName(layout), layout == current) && layout != current)
+                    plugin.SetLayout(layout);
+            }
+
+            ImGui.EndCombo();
+        }
+
+        if (FlyTextLayout.SeparatesStatuses(current))
+        {
+            ImGui.TextColored(ImGuiColors.DalamudGrey, Loc.T(
+                "The game stacks status effects with damage taken: when both arrive together, a block may show a gap.",
+                "Le jeu empile les statuts avec les dégâts subis : quand les deux arrivent ensemble, un bloc peut garder un trou."));
+        }
+    }
+
+    // Positions au pixel près : X/Y à l'écran pour chaque cadre du personnage, écart avec la cible pour les textes sur la cible.
     private void DrawPositions()
     {
         var screen = plugin.Groups.Screen;
@@ -77,19 +102,19 @@ internal sealed class ConfigWindow : Window
         ImGui.TableSetupColumn(string.Empty);
         ImGui.TableHeadersRow();
 
-        foreach (var group in FlyTextLayout.Groups)
+        foreach (var block in FlyTextLayout.Blocks(plugin.Configuration.Layout))
         {
-            if (plugin.Groups.GetPosition(group) is not { } ratio)
+            if (plugin.BlockPosition(block) is not { } ratio)
                 continue;
 
-            if (DrawRow($"{group}", Plugin.GroupName(group), ratio, screen, out var changed))
+            if (DrawRow($"{block}", Plugin.BlockName(block), ratio, screen, out var changed))
             {
-                plugin.Groups.SetPosition(group, changed);
+                plugin.MoveBlock(block, changed - ratio);
                 plugin.Configuration.Save();
             }
 
-            if (ResetButton($"{group}"))
-                plugin.ResetGroup(group);
+            if (ResetButton($"{block}"))
+                plugin.ResetBlock(block);
         }
 
         if (DrawRow("Target", Loc.T("On the target (offset)", "Sur la cible (décalage)"), plugin.Groups.TargetOffset, screen, out var offset))

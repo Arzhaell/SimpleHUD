@@ -4,12 +4,19 @@ Plugin [Dalamud](https://github.com/goatcorp/Dalamud) pour Final Fantasy XIV : d
 affichés sur ton personnage, directement depuis la **configuration de l'ATH**.
 
 ## Utilisation
-- Ouvre la configuration de l'ATH : trois cadres « Texte défilant » apparaissent par-dessus l'éditeur, avec la
+- Ouvre la configuration de l'ATH : les cadres « Texte défilant » apparaissent par-dessus l'éditeur, avec la
   fenêtre du plugin.
-  - **Soins reçus** : tous les soins reçus, soins sur la durée compris (position fixe à l'écran).
-  - **Statuts / dégâts subis** : effets de statut gagnés ou perdus et dégâts subis (position fixe à l'écran).
-  - **Sur la cible** : tes coups sur la cible. Ces textes suivent toujours la cible ; on règle l'écart avec elle
-    (le cercle marque la cible, ou ton personnage s'il n'y en a pas).
+- **Textes sur toi** (position fixe à l'écran) : la fenêtre propose quatre dispositions.
+  - **Tout regroupé** (comme le jeu) : un seul cadre ; soins d'un côté, statuts et dégâts subis de l'autre.
+  - **Soins séparés** : soins reçus · statuts et dégâts subis.
+  - **Statuts séparés** : statuts · soins et dégâts subis.
+  - **Tout séparé** : soins reçus · statuts · dégâts subis.
+
+  Le jeu ne connaît que deux blocs (soins ; statuts et dégâts subis). Pour séparer les statuts, le plugin déplace
+  chaque texte de statut un par un ; le jeu les empilant toujours avec les dégâts, un bloc peut garder un trou
+  quand les deux arrivent en même temps.
+- **Sur la cible** : tes coups sur la cible. Ces textes suivent toujours la cible ; on règle l'écart avec elle
+  (le cercle marque la cible, ou ton personnage s'il n'y en a pas).
 - Fais glisser un cadre (Maj enfoncée : déplacement fin) : le point jaune marque l'endroit où le jeu place les
   textes. Au lâcher, des textes de test défilent à la nouvelle place.
 - Au pixel près : la fenêtre du plugin donne X et Y de chaque cadre, avec des boutons − / + (Ctrl+clic : par 10).

@@ -75,6 +75,46 @@ internal sealed unsafe class FlyTextGroups : IDisposable
         }
     }
 
+    /// <summary>Position d'origine du groupe dans le jeu (fraction de l'écran), ou null tant qu'elle est inconnue.</summary>
+    public Vector2? GetGameDefault(FlyTextGroup group)
+    {
+        lock (sync)
+            return gameDefaults[(int)group];
+    }
+
+    /// <summary>Position du bloc des statuts quand il est séparé (fraction de l'écran).</summary>
+    public Vector2? StatusPosition
+    {
+        get
+        {
+            lock (sync)
+                return configuration.StatusPosition;
+        }
+
+        set
+        {
+            lock (sync)
+                configuration.StatusPosition = value is { } ratio ? FlyTextLayout.Clamp(ratio) : null;
+        }
+    }
+
+    /// <summary>
+    /// Écart en pixels entre le bloc des statuts et le bloc où le jeu les range (statuts/dégâts) :
+    /// c'est de cet écart que le plugin déplace chaque texte de statut. Zéro si les statuts ne sont pas séparés.
+    /// </summary>
+    public Vector2 StatusShift()
+    {
+        lock (sync)
+        {
+            if (!FlyTextLayout.SeparatesStatuses(configuration.Layout)
+                || configuration.StatusPosition is not { } status
+                || current[(int)FlyTextGroup.StatusDamage] is not { } statusDamage)
+                return Vector2.Zero;
+
+            return (status - statusDamage) * Screen;
+        }
+    }
+
     /// <summary>Décalage des textes sur la cible, en fraction de l'écran.</summary>
     public Vector2 TargetOffset
     {

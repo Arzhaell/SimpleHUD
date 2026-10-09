@@ -31,7 +31,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly ConfigWindow configWindow;
     private readonly PlacementOverlay overlay;
     private readonly TestTexts testTexts = new();
-    private readonly FlyTextScaler scaler;
+    private readonly FlyTextNodes nodes;
     private readonly FlyTextHider hider;
 
     // La fenêtre s'ouvre avec l'éditeur d'ATH (pour les réglages au pixel) et se referme avec lui.
@@ -44,9 +44,11 @@ public sealed class Plugin : IDalamudPlugin
     public Plugin()
     {
         Configuration = LoadConfiguration();
+        if (Configuration.Migrate())
+            Configuration.Save();
         Loc.Update(Configuration.Language);
         Groups = new FlyTextGroups(Configuration);
-        scaler = new FlyTextScaler(Configuration);
+        nodes = new FlyTextNodes(Configuration, Groups);
         hider = new FlyTextHider(Configuration);
 
         configWindow = new ConfigWindow(this);
@@ -69,11 +71,103 @@ public sealed class Plugin : IDalamudPlugin
 
     public static bool IsFlyTextFilterLoaded => PluginInterface.InstalledPlugins.Any(p => p.IsLoaded && p.InternalName == "FlyTextFilter");
 
-    public static string GroupName(FlyTextGroup group) => group switch
+    public static string BlockName(PersonalBlock block) => block switch
     {
-        FlyTextGroup.Healing => Loc.T("Healing received", "Soins reçus"),
-        _ => Loc.T("Status effects / damage taken", "Statuts / dégâts subis"),
+        PersonalBlock.All => Loc.T("Texts on you", "Textes sur toi"),
+        PersonalBlock.Healing => Loc.T("Healing received", "Soins reçus"),
+        PersonalBlock.StatusDamage => Loc.T("Status effects / damage taken", "Statuts / dégâts subis"),
+        PersonalBlock.Status => Loc.T("Status effects", "Statuts"),
+        PersonalBlock.HealingDamage => Loc.T("Healing / damage taken", "Soins / dégâts subis"),
+        _ => Loc.T("Damage taken", "Dégâts subis"),
     };
+
+    public static string LayoutName(PersonalLayout layout) => layout switch
+    {
+        PersonalLayout.Grouped => Loc.T("All grouped", "Tout regroupé"),
+        PersonalLayout.HealingSeparate => Loc.T("Healing separate", "Soins séparés"),
+        PersonalLayout.StatusSeparate => Loc.T("Status effects separate", "Statuts séparés"),
+        _ => Loc.T("All separate", "Tout séparé"),
+    };
+
+    /// <summary>
+    /// Point de référence d'un cadre (fraction de l'écran) : son point d'ancrage, ou celui des statuts/dégâts
+    /// pour un cadre qui regroupe les deux blocs du jeu.
+    /// </summary>
+    public Vector2? BlockPosition(PersonalBlock block) => block switch
+    {
+        PersonalBlock.Status => Groups.StatusPosition,
+        PersonalBlock.Healing => Groups.GetPosition(FlyTextGroup.Healing),
+        _ => Groups.GetPosition(FlyTextGroup.StatusDamage),
+    };
+
+    /// <summary>Déplace un cadre (écart en fraction de l'écran) : tous les blocs du jeu qu'il contient bougent ensemble.</summary>
+    public void MoveBlock(PersonalBlock block, Vector2 delta)
+    {
+        if (block == PersonalBlock.Status)
+        {
+            if (Groups.StatusPosition is { } status)
+                Groups.StatusPosition = status + delta;
+            return;
+        }
+
+        foreach (var group in FlyTextLayout.GroupsOf(block))
+        {
+            if (Groups.GetPosition(group) is { } position)
+                Groups.SetPosition(group, position + delta);
+        }
+    }
+
+    public void ResetBlock(PersonalBlock block)
+    {
+        if (block == PersonalBlock.Status)
+        {
+            if (Groups.GetPosition(FlyTextGroup.StatusDamage) is { } statusDamage)
+                Groups.StatusPosition = FlyTextLayout.DefaultStatusPosition(statusDamage);
+        }
+        else
+        {
+            foreach (var group in FlyTextLayout.GroupsOf(block))
+                Groups.Reset(group);
+        }
+
+        Configuration.Save();
+        ShowBlockTest(block);
+    }
+
+    /// <summary>Quelques textes du cadre pour voir où ils tombent.</summary>
+    public void ShowBlockTest(PersonalBlock block)
+    {
+        if (block == PersonalBlock.Healing)
+            ShowTestTexts(FlyTextGroup.Healing);
+        else if (block is PersonalBlock.All or PersonalBlock.HealingDamage)
+            ShowTestTexts();
+        else
+            ShowTestTexts(FlyTextGroup.StatusDamage);
+    }
+
+    /// <summary>
+    /// Change la disposition. Les blocs du jeu qui se retrouvent ensemble reprennent leur écart d'origine
+    /// (soins à côté des statuts/dégâts), et le bloc des statuts, la première fois, se place au-dessus des dégâts.
+    /// </summary>
+    public void SetLayout(PersonalLayout layout)
+    {
+        Configuration.Layout = layout;
+        if (Groups.GetPosition(FlyTextGroup.StatusDamage) is { } statusDamage)
+        {
+            if (FlyTextLayout.LinksGroups(layout))
+            {
+                var defaultHealing = Groups.GetGameDefault(FlyTextGroup.Healing) ?? new Vector2(0.49f, 0.5f);
+                var defaultStatusDamage = Groups.GetGameDefault(FlyTextGroup.StatusDamage) ?? new Vector2(0.55f, 0.5f);
+                Groups.SetPosition(FlyTextGroup.Healing, FlyTextLayout.RegroupedHealing(statusDamage, defaultHealing, defaultStatusDamage));
+            }
+
+            if (FlyTextLayout.SeparatesStatuses(layout) && Groups.StatusPosition == null)
+                Groups.StatusPosition = FlyTextLayout.DefaultStatusPosition(statusDamage);
+        }
+
+        Configuration.Save();
+        ShowTestTexts();
+    }
 
     public static string CategoryName(FlyTextCategory category) => category switch
     {
@@ -124,18 +218,11 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenMainUi -= configWindow.Toggle;
         windowSystem.RemoveAllWindows();
         hider.Dispose();
-        scaler.Dispose();
+        nodes.Dispose();
         Groups.Dispose();
 #if DEBUG
         diagnostics.Dispose();
 #endif
-    }
-
-    public void ResetGroup(FlyTextGroup group)
-    {
-        Groups.Reset(group);
-        Configuration.Save();
-        ShowTestTexts(group);
     }
 
     public void ResetTarget()
@@ -148,6 +235,8 @@ public sealed class Plugin : IDalamudPlugin
     {
         foreach (var group in FlyTextLayout.Groups)
             Groups.Reset(group);
+        Configuration.Layout = PersonalLayout.Grouped;
+        Groups.StatusPosition = null;
         Groups.TargetOffset = Vector2.Zero;
         foreach (var category in Categories)
         {

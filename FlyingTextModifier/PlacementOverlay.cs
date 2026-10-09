@@ -32,30 +32,54 @@ internal sealed class PlacementOverlay
 
         var viewport = ImGuiHelpers.MainViewport;
         var size = FrameSize * ImGuiHelpers.GlobalScale;
-        foreach (var group in FlyTextLayout.Groups)
-            DrawGroupFrame(group, viewport.Pos, viewport.Size, size);
+        foreach (var block in FlyTextLayout.Blocks(plugin.Configuration.Layout))
+            DrawBlockFrame(block, viewport.Pos, viewport.Size, size);
         DrawTargetFrame(viewport.Pos, viewport.Size, size);
     }
 
-    private void DrawGroupFrame(FlyTextGroup group, Vector2 origin, Vector2 screen, Vector2 size)
+    // Un cadre par bloc de la disposition choisie. Un cadre qui regroupe les deux blocs du jeu les englobe
+    // et montre leurs deux points d'ancrage.
+    private void DrawBlockFrame(PersonalBlock block, Vector2 origin, Vector2 screen, Vector2 size)
     {
-        if (plugin.Groups.GetPosition(group) is not { } ratio)
+        if (plugin.BlockPosition(block) is not { } ratio)
             return;
 
         var anchor = origin + (ratio * screen);
+        Vector2 min;
+        var frameSize = size;
+        Vector2[] anchors;
+        switch (block)
+        {
+            case PersonalBlock.All or PersonalBlock.HealingDamage:
+                if (plugin.Groups.GetPosition(FlyTextGroup.Healing) is not { } healing)
+                    return;
+                var healingAnchor = origin + (healing * screen);
+                (min, frameSize) = FlyTextLayout.LinkedFrame(healingAnchor, anchor, size);
+                anchors = [healingAnchor, anchor];
+                break;
+            case PersonalBlock.Healing:
+                min = FlyTextLayout.FrameMin(FlyTextGroup.Healing, anchor, size);
+                anchors = [anchor];
+                break;
+            default:
+                min = FlyTextLayout.FrameMin(FlyTextGroup.StatusDamage, anchor, size);
+                anchors = [anchor];
+                break;
+        }
+
         var (x, y) = FlyTextLayout.ToWholePixels(ratio, plugin.Groups.Screen);
-        var frame = DrawFrame($"{group}", FlyTextLayout.FrameMin(group, anchor, size), size, anchor, null, Plugin.GroupName(group), $"X {x}  ·  Y {y}");
+        var frame = DrawFrame($"{block}", min, frameSize, anchors, null, Plugin.BlockName(block), $"X {x}  ·  Y {y}");
 
         if (frame.Delta is { } delta)
-            plugin.Groups.SetPosition(group, ratio + (delta / screen));
+            plugin.MoveBlock(block, delta / screen);
         if (frame.Released)
         {
             plugin.Configuration.Save();
-            plugin.ShowTestTexts(group);
+            plugin.ShowBlockTest(block);
         }
 
         if (frame.ResetRequested)
-            plugin.ResetGroup(group);
+            plugin.ResetBlock(block);
     }
 
     // Les textes sur la cible la suivent : le cadre montre l'écart choisi par rapport à elle
@@ -73,7 +97,7 @@ internal sealed class PlacementOverlay
         var subtitle = Plugin.TargetManager.Target != null
             ? Loc.T("On the target", "Sur la cible")
             : Loc.T("On the target (preview on you)", "Sur la cible (aperçu sur toi)");
-        var frame = DrawFrame("Target", FlyTextLayout.CenteredFrameMin(anchor, size), size, anchor, reference, subtitle, $"{x:+0;-0;0}  ·  {y:+0;-0;0}");
+        var frame = DrawFrame("Target", FlyTextLayout.CenteredFrameMin(anchor, size), size, [anchor], reference, subtitle, $"{x:+0;-0;0}  ·  {y:+0;-0;0}");
 
         if (frame.Delta is { } delta)
             plugin.Groups.TargetOffset = offset + (delta / screen);
@@ -88,8 +112,9 @@ internal sealed class PlacementOverlay
 
     private readonly record struct FrameInput(Vector2? Delta, bool Released, bool ResetRequested);
 
+    /// <param name="anchors">Points d'ancrage des textes (deux pour un cadre qui regroupe les deux blocs du jeu).</param>
     /// <param name="origin">Point de départ du décalage (textes sur la cible), relié au cadre par un trait.</param>
-    private FrameInput DrawFrame(string id, Vector2 min, Vector2 size, Vector2 anchor, Vector2? origin, string subtitle, string coordinates)
+    private FrameInput DrawFrame(string id, Vector2 min, Vector2 size, Vector2[] anchors, Vector2? origin, string subtitle, string coordinates)
     {
         Vector2? delta = null;
         var released = false;
@@ -152,13 +177,14 @@ internal sealed class PlacementOverlay
         // Point d'ancrage (et, pour la cible, trait depuis la position d'origine), dessinés par-dessus tout.
         var foreground = ImGui.GetForegroundDrawList();
         var accent = ImGui.GetColorU32(Accent);
-        if (origin is { } from && from != anchor)
+        if (origin is { } from && from != anchors[0])
         {
-            foreground.AddLine(from, anchor, accent, 1.5f * scale);
+            foreground.AddLine(from, anchors[0], accent, 1.5f * scale);
             foreground.AddCircle(from, 5f * scale, accent, 0, 1.5f * scale);
         }
 
-        foreground.AddCircleFilled(anchor, 4f * scale, accent);
+        foreach (var anchor in anchors)
+            foreground.AddCircleFilled(anchor, 4f * scale, accent);
 
         return new FrameInput(delta, released, reset);
     }

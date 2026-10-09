@@ -180,6 +180,89 @@ public class FlyTextLayoutTests
         Assert.False(configuration.IsHidden(FlyTextLayout.Categorize(21))); // Healing
     }
 
+    [Theory]
+    [InlineData(PersonalLayout.Grouped, new[] { PersonalBlock.All })]
+    [InlineData(PersonalLayout.HealingSeparate, new[] { PersonalBlock.Healing, PersonalBlock.StatusDamage })]
+    [InlineData(PersonalLayout.StatusSeparate, new[] { PersonalBlock.Status, PersonalBlock.HealingDamage })]
+    [InlineData(PersonalLayout.AllSeparate, new[] { PersonalBlock.Healing, PersonalBlock.Status, PersonalBlock.Damage })]
+    public void EachLayoutHasItsFrames(PersonalLayout layout, PersonalBlock[] expected)
+    {
+        Assert.Equal(expected, FlyTextLayout.Blocks(layout));
+    }
+
+    [Fact]
+    public void FramesMoveTheRightGameBlocks()
+    {
+        Assert.Equal([FlyTextGroup.Healing, FlyTextGroup.StatusDamage], FlyTextLayout.GroupsOf(PersonalBlock.All));
+        Assert.Equal([FlyTextGroup.Healing, FlyTextGroup.StatusDamage], FlyTextLayout.GroupsOf(PersonalBlock.HealingDamage));
+        Assert.Equal([FlyTextGroup.StatusDamage], FlyTextLayout.GroupsOf(PersonalBlock.Damage));
+        Assert.Empty(FlyTextLayout.GroupsOf(PersonalBlock.Status));
+        Assert.True(FlyTextLayout.SeparatesStatuses(PersonalLayout.AllSeparate));
+        Assert.False(FlyTextLayout.SeparatesStatuses(PersonalLayout.HealingSeparate));
+        Assert.True(FlyTextLayout.LinksGroups(PersonalLayout.StatusSeparate));
+        Assert.False(FlyTextLayout.LinksGroups(PersonalLayout.AllSeparate));
+    }
+
+    [Fact]
+    public void RegroupingKeepsTheGameSpacing()
+    {
+        var healing = FlyTextLayout.RegroupedHealing(new Vector2(0.7f, 0.3f), new Vector2(0.49f, 0.5f), new Vector2(0.55f, 0.5f));
+
+        Assert.Equal(0.64f, healing.X, 4);
+        Assert.Equal(0.3f, healing.Y, 4);
+        var status = FlyTextLayout.DefaultStatusPosition(new Vector2(0.7f, 0.3f));
+        Assert.Equal(0.7f, status.X, 4);
+        Assert.Equal(0.2f, status.Y, 4);
+    }
+
+    [Fact]
+    public void LinkedFrameCoversBothBlocks()
+    {
+        var size = new Vector2(200, 60);
+        var (min, frameSize) = FlyTextLayout.LinkedFrame(new Vector2(1000, 500), new Vector2(1100, 500), size);
+
+        Assert.Equal(new Vector2(800, 470), min);
+        Assert.Equal(new Vector2(500, 60), frameSize);
+    }
+
+    [Fact]
+    public void ShiftDoesNotPileUpWhenTheGameSetsPositions()
+    {
+        // Le jeu repart de sa propre position à chaque image (ici il avance de 2) : on garde sa nouvelle position.
+        var game = FlyTextLayout.GamePosition(current: new Vector2(100, 98), previousGame: new Vector2(100, 100), written: new Vector2(300, 100), appliedShift: new Vector2(200, 0));
+
+        Assert.Equal(new Vector2(100, 98), game);
+    }
+
+    [Fact]
+    public void ShiftDoesNotPileUpWhenTheGameMovesFromOurPosition()
+    {
+        // Le jeu fait avancer le texte depuis la place où on l'a mis : on retire notre décalage.
+        var game = FlyTextLayout.GamePosition(current: new Vector2(300, 98), previousGame: new Vector2(100, 100), written: new Vector2(300, 100), appliedShift: new Vector2(200, 0));
+
+        Assert.Equal(new Vector2(100, 98), game);
+    }
+
+    [Fact]
+    public void UnchangedTextKeepsItsGamePosition()
+    {
+        Assert.Equal(new Vector2(100, 100), FlyTextLayout.GamePosition(new Vector2(300, 100), new Vector2(100, 100), new Vector2(300, 100), new Vector2(200, 0)));
+    }
+
+    [Fact]
+    public void OldSettingsKeepTheirTwoBlocks()
+    {
+        var moved = new Configuration { Version = 0 };
+        moved.Positions[FlyTextGroup.Healing] = new Vector2(0.7f, 0.4f);
+        var untouched = new Configuration { Version = 0 };
+
+        Assert.True(moved.Migrate());
+        Assert.Equal(PersonalLayout.HealingSeparate, moved.Layout);
+        Assert.True(untouched.Migrate());
+        Assert.Equal(PersonalLayout.Grouped, untouched.Layout);
+        Assert.False(new Configuration().Migrate());
+    }
+
     [Fact]
     public void SavedPositionsSurviveTheConfigurationFile()
     {
