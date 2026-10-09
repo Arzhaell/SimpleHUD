@@ -1,7 +1,7 @@
 <Project Sdk="Dalamud.NET.Sdk/15.0.0">
   <PropertyGroup>
-    <Version>1.0.0.0</Version>
-    <Description>Move the flying text from the HUD layout editor.</Description>
+    <Version>1.1.0.0</Version>
+    <Description>Move the flying text and set the HUD to the pixel from the HUD layout editor.</Description>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>

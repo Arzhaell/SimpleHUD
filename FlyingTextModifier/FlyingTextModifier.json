@@ -1,7 +1,7 @@
 {
   "Author": "Arzhael",
   "Name": "Flying Text Modifier",
-  "Punchline": "Move the flying text from the HUD layout editor.",
+  "Punchline": "Move the flying text and set the HUD to the pixel from the HUD layout editor.",
   "Description": "Adds \"Flying Text\" frames to the HUD layout editor: drag them to choose where the text about your character appears (healing received, status effects and damage taken).\nIn the same editor, shows where each HUD element is and lets you set the selected one to the pixel.\nAvailable in English and French. Command: /flytextmod",
   "ApplicableVersion": "any",
   "Tags": [ "flytext", "flying text", "hud", "ui" ]
