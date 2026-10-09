@@ -1,0 +1,94 @@
+# Publie une nouvelle version quand on pousse un tag annoté vX.Y.Z. Son message : une ligne de titre,
+# une ligne vide, puis les notes de version FR + EN (c'est ce qui apparaît sur la release) :
+#   git tag -a v1.2.0 --cleanup=verbatim -F notes.txt   (verbatim : garde les titres « ## » des notes)
+#   git push origin v1.2.0
+# Le workflow compile le plugin, crée la release GitHub avec latest.zip,
+# puis met à jour repo.json (le fichier que Dalamud lit) sur la branche main.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Télécharger Dalamud
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://goatcorp.github.io/dalamud-distrib/latest.zip -OutFile dalamud.zip
+          Expand-Archive dalamud.zip -DestinationPath "$env:AppData\XIVLauncher\addon\Hooks\dev" -Force
+
+      - name: Tests
+        shell: pwsh
+        run: dotnet test SimpleHUD.Tests/SimpleHUD.Tests.csproj -c Release
+
+      - name: Compiler
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          dotnet build SimpleHUD/SimpleHUD.csproj -c Release -p:Version=$version
+
+      # Si la release existe déjà (relance du workflow), on remplace juste le zip.
+      - name: Créer ou mettre à jour la release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $zip = 'SimpleHUD/bin/Release/SimpleHUD/latest.zip'
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag $zip --clobber
+          } else {
+            # Notes de version (FR + EN) : le corps du message du tag annoté, sous sa première ligne.
+            # actions/checkout récupère le tag sans son message : on le relit depuis le dépôt.
+            git fetch --force origin "refs/tags/${tag}:refs/tags/${tag}"
+            git tag --list $tag --format='%(contents:body)' | Out-File notes.md -Encoding utf8
+            if ((Get-Content notes.md -Raw).Trim()) {
+              gh release create $tag $zip --title "Simple HUD $tag" --notes-file notes.md
+            } else {
+              gh release create $tag $zip --title "Simple HUD $tag" --generate-notes
+            }
+          }
+
+      - name: Mettre à jour repo.json
+        shell: pwsh
+        run: |
+          $repoUrl = 'https://github.com/${{ github.repository }}'
+          $download = "$repoUrl/releases/download/${{ github.ref_name }}/latest.zip"
+
+          # RepoUrl vient du manifeste du plugin (SimpleHUD.json).
+          $manifest = Get-Content SimpleHUD/bin/Release/SimpleHUD/SimpleHUD.json -Raw -Encoding utf8 | ConvertFrom-Json
+          $extra = [ordered]@{
+            DownloadLinkInstall = $download
+            DownloadLinkUpdate  = $download
+            DownloadLinkTesting = $download
+            LastUpdate          = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+          }
+          foreach ($key in $extra.Keys) {
+            $manifest | Add-Member -NotePropertyName $key -NotePropertyValue $extra[$key] -Force
+          }
+
+          git fetch origin main
+          git checkout main
+          ConvertTo-Json -InputObject @($manifest) -Depth 5 | Set-Content repo.json -Encoding utf8
+
+          # Le commit de repo.json est signé au nom du mainteneur plutôt que du robot github-actions.
+          git config user.name 'Arzhael'
+          git config user.email '33180615+Arzhaell@users.noreply.github.com'
+          git add repo.json
+          git commit -m 'repo.json : ${{ github.ref_name }}'
+          git push origin main

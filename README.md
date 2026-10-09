@@ -1,67 +1,93 @@
 # Simple HUD
 
-Plugin [Dalamud](https://github.com/goatcorp/Dalamud) pour Final Fantasy XIV : des réglages simples de l'affichage,
-directement depuis la **configuration de l'ATH**. Il déplace les **textes défilants** affichés sur ton personnage
-et règle au pixel près tous les **éléments de l'ATH** du jeu.
+🇫🇷 [Version française](README.fr.md)
 
-Anciennement « Flying Text Modifier » (jusqu'à la version 1.1.0).
+A [Dalamud](https://github.com/goatcorp/Dalamud) plugin for Final Fantasy XIV: simple display tweaks, right from the
+**HUD layout editor**. It moves the **flying text** shown on your character and sets every game **HUD element** to
+the pixel.
 
-## Utilisation
-- Ouvre la configuration de l'ATH : les cadres « Texte défilant » apparaissent par-dessus l'éditeur, avec la
-  fenêtre du plugin.
-- **Textes sur toi** (position fixe à l'écran) : la fenêtre propose quatre dispositions.
-  - **Tout regroupé** (comme le jeu) : un seul cadre ; soins d'un côté, statuts et dégâts subis de l'autre.
-  - **Soins séparés** : soins reçus · statuts et dégâts subis.
-  - **Statuts séparés** : statuts · soins et dégâts subis.
-  - **Tout séparé** : soins reçus · statuts · dégâts subis.
+Formerly "Flying Text Modifier" (up to version 1.1.0).
 
-  Le jeu ne connaît que deux blocs (soins ; statuts et dégâts subis). Pour séparer les statuts, le plugin déplace
-  chaque texte de statut un par un ; le jeu les empilant toujours avec les dégâts, un bloc peut garder un trou
-  quand les deux arrivent en même temps.
-- **Sur la cible** : tes coups sur la cible. Ces textes suivent toujours la cible ; on règle l'écart avec elle
-  (le cercle marque la cible, ou ton personnage s'il n'y en a pas).
-- Fais glisser un cadre (Maj enfoncée : déplacement fin) : le point jaune marque l'endroit où le jeu place les
-  textes. Au lâcher, des textes de test défilent à la nouvelle place.
-- Au pixel près : l'onglet « Textes défilants » de la fenêtre du plugin donne X et Y de chaque cadre, avec des
-  boutons − / + (Ctrl+clic : par 10).
-- Clic droit sur un cadre, ou bouton ↺ : retour à la position d'origine du jeu.
-- **Afficher / taille** : pour les buffs / débuffs, les soins, les dégâts (sur toi comme sur la cible) et les
-  autres textes (EXP, PM…), la fenêtre permet de les masquer ou de régler leur taille, de 50 % à 200 % de la
-  taille du jeu. Le rebond des critiques est gardé.
-- **Tester tous les textes** fait défiler sur ton personnage tous les types de textes : soins, soins critiques,
-  statuts bénéfiques et néfastes gagnés puis perdus (de vrais statuts du jeu, tirés au hasard à chaque essai),
-  dégâts, critiques, coups directs, auto-attaques, esquives…
-- `/simplehud` ouvre la fenêtre hors de l'éditeur d'ATH ; les cadres s'affichent tant qu'elle est ouverte.
+## Installation
+1. In game, type `/xlsettings` and open the **Experimental** tab.
+2. Under **Custom Plugin Repositories**, paste this URL, click **+**, tick the checkbox and save:
+   ```
+   https://raw.githubusercontent.com/Arzhaell/SimpleHUD/main/repo.json
+   ```
+3. Type `/xlplugins`, search for **Simple HUD** and install it.
 
-### ATH du jeu au pixel
-- Dans la configuration de l'ATH, survole un élément (barres de raccourcis, équipe, cible, boussole…, y compris
-  ceux masqués en jeu) : juste au-dessus de son cadre s'affiche la position de son coin haut-gauche à l'écran, en
-  pixels. L'onglet « ATH du jeu » de la fenêtre du plugin peut les afficher toutes en même temps.
-- **Au pixel près** : sous l'élément sélectionné, un panneau donne X et Y (boutons − / +, Ctrl+clic : par 10). Il
-  bouge comme si tu le faisais glisser : c'est le bouton « Sauvegarder » de l'éditeur qui garde la nouvelle
-  position, et fermer sans sauvegarder l'annule.
-- La version Debug note en plus dans le journal de Dalamud (lignes `[hud]`) ce que fait l'éditeur d'ATH.
+## Usage
+- Open the HUD layout editor: "Flying text" frames show up over the editor, along with the plugin window.
+- **Texts on you** (fixed place on screen): the window offers four layouts.
+  - **All grouped** (like the game): a single frame; healing on one side, status effects and damage taken on the
+    other.
+  - **Healing separate**: healing received · status effects and damage taken.
+  - **Status effects separate**: status effects · healing and damage taken.
+  - **All separate**: healing received · status effects · damage taken.
 
-Les positions sont enregistrées en proportion de l'écran : elles suivent un changement de résolution.
-Quand le plugin est désactivé, les textes reprennent leur place d'origine.
+  The game only knows two blocks (healing; status effects and damage taken). To separate status effects, the plugin
+  moves each status text one by one; since the game always stacks them with damage, a block may keep a gap when both
+  arrive at the same time.
+- **On the target**: your hits on the target. These texts always follow the target; you set their offset from it
+  (the circle marks the target, or your character when there is none).
+- Drag a frame (hold Shift for fine moves): the yellow dot marks where the game places the texts. When you let go,
+  test texts scroll at the new place.
+- To the pixel: the "Flying text" tab of the plugin window gives X and Y for each frame, with − / + buttons
+  (Ctrl+click: by 10).
+- Right-click a frame, or the ↺ button: back to the game's original position.
+- **Display and size**: for buffs / debuffs, healing, damage (on you and on the target) and other texts (EXP, MP…),
+  the window lets you hide them or set their size, from 50% to 200% of the game's size. The critical hit bounce is
+  kept.
+- **Test all texts** scrolls every kind of text over your character: healing, critical healing, beneficial and
+  detrimental status effects gained then lost (real game status effects, picked at random on each try), damage,
+  critical hits, direct hits, auto-attacks, misses…
+- `/simplehud` opens the window outside the HUD layout editor; the frames show while it is open.
 
-Le regroupement des textes est imposé par le jeu. Pour décaler les textes sur la cible, le plugin déplace tout
-le calque des textes défilants et compense la position des deux groupes du personnage.
+### Game HUD to the pixel
+- In the HUD layout editor, hover an element (hotbars, party list, target, compass…, including those hidden in game):
+  the position of its top-left corner on screen, in pixels, shows just above its frame. The "Game HUD" tab of the
+  plugin window can show all of them at once.
+- **To the pixel**: under the selected element, a panel gives X and Y (− / + buttons, Ctrl+click: by 10). It moves
+  as if you dragged it: the editor's "Save" button keeps the new position, and closing without saving cancels it.
+- The Debug build also writes what the HUD layout editor does to the Dalamud log (`[hud]` lines).
 
-## Compiler et tester
-- `dotnet test SimpleHUD.Tests` : tests de la logique (recherche en mémoire, conversions, réglages).
-- `dotnet build SimpleHUD -c Release` : la DLL de `SimpleHUD\bin\Release\` est celle que Dalamud charge comme
-  plugin de développement (rechargée toute seule, même jeu ouvert).
-- La version Debug (`dotnet build SimpleHUD`) note en plus dans le journal de Dalamud (lignes `[diag]`)
-  l'état des groupes et de chaque texte, pour la mise au point. Elle écrit beaucoup : à ne charger que pour étudier.
+Positions are saved as a proportion of the screen: they follow a resolution change.
+When the plugin is disabled, the texts go back to their original place.
 
-Projet local, non publié.
+The grouping of texts is set by the game. To offset the texts on the target, the plugin moves the whole flying text
+layer and makes up for it in the position of the two groups on your character.
 
-## Crédits
-- [Dalamud](https://github.com/goatcorp/Dalamud) et [FFXIVClientStructs](https://github.com/aers/FFXIVClientStructs) :
-  cadre des plugins et structures du jeu.
-- [FlyTextFilter](https://github.com/Aireil/FlyTextFilter) (Aireil) : c'est ce plugin qui a relevé où le jeu range
-  la position des groupes de textes défilants. Aucun code n'en est repris.
-- [xUnit](https://xunit.net/) pour les tests.
+The plugin follows the Dalamud language (English or French); the window lets you force it.
 
-FINAL FANTASY XIV © SQUARE ENIX CO., LTD. Ce plugin n'est ni affilié ni approuvé par Square Enix.
+If [FlyTextFilter](https://github.com/Aireil/FlyTextFilter) is loaded too and also moves these texts, the positions
+chosen in Simple HUD take over.
+
+## Disclaimer
+Like any third-party tool, using Dalamud and its plugins is against the FFXIV Terms of Service. Use it at your own
+risk.
+
+## Building and testing
+- `dotnet test SimpleHUD.Tests -c Release`: tests of the logic (memory lookups, conversions, settings).
+- `dotnet build SimpleHUD -c Release`: to try it, add `SimpleHUD\bin\Release\SimpleHUD.dll` to the dev plugin
+  locations (`/xlsettings`, **Experimental** tab); Dalamud reloads it by itself, even with the game running. It does
+  not load the version installed from the repository at the same time: disable that one.
+- The Debug build (`dotnet build SimpleHUD`) also writes the state of the groups and of each text to the Dalamud log
+  (`[diag]` lines), for troubleshooting. It writes a lot: only load it to investigate.
+
+## Releasing a new version
+Pushing an annotated `vX.Y.Z` tag is all it takes: the GitHub workflow runs the tests, builds the plugin, creates
+the release (its notes are the tag message) and updates `repo.json`.
+
+```bash
+git tag -a v1.2.0 --cleanup=verbatim -F notes.txt
+git push origin v1.2.0
+```
+
+## Credits
+- [Dalamud](https://github.com/goatcorp/Dalamud) and [FFXIVClientStructs](https://github.com/aers/FFXIVClientStructs):
+  plugin framework and game structures.
+- [FlyTextFilter](https://github.com/Aireil/FlyTextFilter) (Aireil): this plugin found where the game stores the
+  position of the flying text groups. None of its code is reused.
+- [xUnit](https://xunit.net/) for the tests.
+
+FINAL FANTASY XIV © SQUARE ENIX CO., LTD. This plugin is neither affiliated with nor endorsed by Square Enix.
