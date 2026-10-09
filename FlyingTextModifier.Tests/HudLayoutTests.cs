@@ -74,6 +74,34 @@ public class HudLayoutTests
     }
 
     [Fact]
+    public void MovesByWholePixels()
+    {
+        Assert.Equal(new Vector2(36, -10), HudLayout.MoveDelta(new Vector2(964, 1227), new Vector2(1000, 1217)));
+
+        // Cadre posé entre deux pixels par le jeu : le déplacement le ramène sur un pixel entier.
+        Assert.Equal(new Vector2(1, 0), HudLayout.MoveDelta(new Vector2(963.6f, 1227), new Vector2(965, 1227)));
+        Assert.Equal(Vector2.Zero, HudLayout.MoveDelta(new Vector2(964.2f, 1226.8f), new Vector2(964, 1227)));
+    }
+
+    [Fact]
+    public void LetsAFrameGoPastTheEdge()
+    {
+        // Comme le jeu (infos du serveur à Y -1), un cadre peut dépasser du bord.
+        var target = HudLayout.ClampFrame(new Vector2(2310, -1), new Vector2(248, 28), Screen);
+
+        Assert.Equal(new Vector2(2310, -1), target);
+    }
+
+    [Fact]
+    public void KeepsAPieceOfTheFrameOnScreen()
+    {
+        var size = new Vector2(542, 54);
+
+        Assert.Equal(new Vector2(-541, -53), HudLayout.ClampFrame(new Vector2(-5000, -5000), size, Screen));
+        Assert.Equal(new Vector2(2559, 1439), HudLayout.ClampFrame(new Vector2(9000, 9000), size, Screen));
+    }
+
+    [Fact]
     public void KeepsOneFramePerElement()
     {
         // Le cadre de la sélection est dessiné par-dessus celui de l'élément : un seul reste, marqué sélectionné.

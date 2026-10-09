@@ -41,6 +41,21 @@ internal static class HudLayout
     }
 
     /// <summary>
+    /// Place demandée pour le coin haut-gauche d'un cadre, gardée à l'écran : le cadre peut dépasser du bord (le jeu
+    /// le permet, ex. infos du serveur à Y -1), mais il en reste toujours un morceau visible.
+    /// </summary>
+    public static Vector2 ClampFrame(Vector2 target, Vector2 frameSize, Vector2 screenSize)
+    {
+        var min = Vector2.One - Vector2.Max(frameSize, Vector2.One);
+        var max = Vector2.Max(min, screenSize - Vector2.One);
+        return Vector2.Clamp(target, min, max);
+    }
+
+    /// <summary>Déplacement en pixels entiers qui amène le coin d'un cadre de sa place actuelle à la place demandée.</summary>
+    public static Vector2 MoveDelta(Vector2 current, Vector2 target) =>
+        new(MathF.Round(target.X) - MathF.Round(current.X), MathF.Round(target.Y) - MathF.Round(current.Y));
+
+    /// <summary>
     /// Un cadre par élément : le jeu peut dessiner deux fois le même (cadre de la sélection par-dessus celui de
     /// l'élément). Rangés par nom.
     /// </summary>
