@@ -244,42 +244,13 @@ internal static class FlyTextLayout
     public static Vector2 DefaultOtherPosition(Vector2 statusDamage) => Clamp(statusDamage + new Vector2(0, 0.1f));
 
     /// <summary>
-    /// Vrai si le jeu a replacé d'un coup un texte qu'on avait décalé (le décalage est alors perdu, à remettre).
-    /// Constaté en jeu : quand il fait défiler un texte, le jeu ne change que sa hauteur, à partir de la place où il
-    /// se trouve (le décalage reste) ; quand il le replace, il remet aussi sa position horizontale. Si le décalage
-    /// est purement vertical, un écart de hauteur supérieur à la moitié du décalage trahit le replacement, sauf quand
-    /// le jeu a pu pousser le texte (création d'un texte dans son bloc) : la poussée aussi est un saut vertical.
+    /// Poussée du jeu pendant une image où un texte est arrivé dans le bloc : mouvement de l'image moins le défilement
+    /// habituel (celui d'une image sans arrivée). Constaté en jeu : quand un texte arrive, le jeu pousse vers le bas les
+    /// plus anciens de son bloc pour lui faire de la place. Zéro sous le seuil.
     /// </summary>
-    public static bool GameReplacedText(Vector2 current, Vector2 written, Vector2 appliedShift, bool pushPossible = false)
+    public static float GamePush(float moved, float usualStep)
     {
-        if (appliedShift.X != 0)
-            return current.X != written.X;
-
-        if (pushPossible)
-            return false;
-
-        return MathF.Abs(current.Y - written.Y) > MathF.Max(4f, MathF.Abs(appliedShift.Y) / 2);
-    }
-
-    /// <summary>
-    /// Création qui a causé les poussées relevées dans une tranche, ou -1 s'il n'y en a pas. Constaté en jeu : à la
-    /// création d'un texte, le jeu pousse vers le bas les textes déjà affichés dans le même bloc du jeu pour lui faire
-    /// de la place. Les mouvements sont relevés entre deux créations (tranche 0 : avant la première, tranche n : après
-    /// la dernière). Si le jeu pousse avant de créer, la tranche k vient de la création k ; sinon, de la création k − 1.
-    /// </summary>
-    public static int PushCause(int slice, int creations, bool pushesBeforeCreating)
-    {
-        var cause = pushesBeforeCreating ? slice : slice - 1;
-        return cause >= 0 && cause < creations ? cause : -1;
-    }
-
-    /// <summary>
-    /// Poussée du jeu qui n'a pas été vue pendant la création des textes : mouvement de l'image, moins les poussées
-    /// déjà vues et le défilement habituel (celui d'une image sans création). Zéro sous le seuil.
-    /// </summary>
-    public static float UnseenPush(float moved, float seenPush, float usualStep)
-    {
-        var push = moved - seenPush - usualStep;
+        var push = moved - usualStep;
         return push > PushThreshold ? push : 0f;
     }
 

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
@@ -16,15 +15,17 @@ namespace SimpleHUD;
 /// textes du personnage qui ont leur propre cadre (statuts, autres textes) et indépendance des cadres. Chaque texte est
 /// repéré au moment où le jeu le crée (son type et le personnage qui le reçoit sont alors connus), puis ajusté après
 /// chaque mise à jour du jeu (qui a lieu à chaque image).
-/// Constaté en jeu : le jeu calcule l'affichage pendant sa mise à jour, à partir des valeurs des nœuds ; nos réglages
-/// restent donc en place (une valeur retirée avant la mise à jour n'apparaît jamais). Le jeu fait défiler un texte à
-/// partir de sa place actuelle, ce qui garde le décalage ; quand il le replace ou change sa taille, on réapplique.
-/// À la création d'un texte, le jeu pousse vers le bas ceux de son bloc pour lui faire de la place : quand le nouveau
-/// texte s'affiche dans un autre cadre, le plugin annule cette poussée.
+/// Constaté en jeu : le jeu empile les textes d'un bloc d'après la place de leurs nœuds, et le revérifie à chaque
+/// image (un texte plus ancien doit rester sous le plus récent). Le nœud d'un texte reste donc là où le jeu le met :
+/// pour l'afficher dans un autre cadre, on décale son contenu (texte et icône). Quand un texte arrive, le jeu pousse vers
+/// le bas ceux de son bloc ; venue d'un texte d'un autre cadre, cette poussée est retirée de l'affichage.
 /// </summary>
 internal sealed unsafe class FlyTextNodes : IDisposable
 {
     private const string AddonName = "_FlyText";
+
+    // Au-delà, un mouvement d'une image n'est pas le défilement habituel (en pixels).
+    private const float MaxStep = 8f;
 
     private readonly Configuration configuration;
     private readonly FlyTextGroups groups;
@@ -42,9 +43,6 @@ internal sealed unsafe class FlyTextNodes : IDisposable
     // Acteur dont le jeu est en train de créer les textes (null en dehors).
     private uint? currentActor;
 
-    // Création en cours de textes sur le personnage (null en dehors).
-    private PushTrace? trace;
-
     // Cadre de chaque texte créé depuis la dernière mise à jour, par bloc du jeu du personnage (null : bloc du jeu).
     private readonly List<PersonalBlock?>[] createdBlocks = [[], []];
 
@@ -60,23 +58,18 @@ internal sealed unsafe class FlyTextNodes : IDisposable
         public Vector2 GameScale;
         public Vector2? WrittenScale;
 
-        // Dernière place écrite, avec l'écart de son cadre à part et le total des poussées du jeu annulées
-        // (négatif : vers le haut).
-        public Vector2? WrittenPosition;
-        public Vector2 BlockShift;
-        public float Cancelled;
+        // Contenu du texte, décalé pour l'afficher ailleurs que son nœud.
+        public readonly List<Content> Contents = [];
 
-        // Relevé pendant la création d'autres textes : poussée totale, et part due aux textes d'un autre cadre.
-        public float SeenPush;
-        public float PushToCancel;
-
-        // Défilement de la dernière image sans création dans son bloc.
+        // Place du nœud à la dernière mise à jour, et défilement de la dernière image sans création dans son bloc.
+        public Vector2 LastPosition;
         public float Step;
+
+        // Total des poussées du jeu retirées de l'affichage (en pixels ; négatif : vers le haut).
+        public float Cancelled;
 
         // Vrai une fois que le jeu a placé le texte (son premier mouvement après la création).
         public bool Placed;
-
-        public Vector2 AppliedShift => BlockShift + new Vector2(0, Cancelled);
 
 #if DEBUG
         // Relevé : emplacement de la fiche et nombre de lignes déjà notées pour ce texte.
@@ -85,17 +78,12 @@ internal sealed unsafe class FlyTextNodes : IDisposable
 #endif
     }
 
-    // Création de textes sur le personnage : hauteur des textes de son bloc relevée avant et après chaque création.
-    private sealed class PushTrace(FlyTextGroup group)
+    // Nœud du contenu d'un texte : place que lui donne le jeu, et dernière place écrite.
+    private sealed class Content
     {
-        public readonly FlyTextGroup Group = group;
-        public readonly Dictionary<Tracked, float> LastY = [];
-
-        // Mouvements relevés, par tranche (tranche k : entre la création k − 1 et la création k).
-        public readonly List<(Tracked Entry, float Moved, int Slice)> Moves = [];
-
-        // Textes créés, dans l'ordre : suivi ou non (masqué, inattendu), et leur cadre.
-        public readonly List<(bool Tracked, PersonalBlock? Block)> Created = [];
+        public nint Node;
+        public Vector2 Game;
+        public Vector2? Written;
     }
 
     public FlyTextNodes(Configuration configuration, FlyTextGroups groups)
@@ -138,7 +126,7 @@ internal sealed unsafe class FlyTextNodes : IDisposable
         tracked.Clear();
     }
 
-    // Après chaque mise à jour du jeu : taille du jeu × taille de la famille, place du jeu + écart du cadre à part,
+    // Après chaque mise à jour du jeu : taille du jeu × taille de la famille, contenu décalé vers son cadre à part,
     // moins les poussées venues d'un autre cadre.
     private void OnAddonPostUpdate(AddonEvent type, AddonArgs args)
     {
@@ -149,9 +137,12 @@ internal sealed unsafe class FlyTextNodes : IDisposable
             stale.Clear();
             foreach (var (offset, entry) in tracked)
             {
-                // La fiche désigne un autre nœud : le texte est terminé, on l'oublie.
+                // La fiche désigne un autre nœud : le texte est terminé. On remet son contenu en place (s'il porte
+                // encore nos valeurs) avant que le jeu ne reprenne le nœud pour un autre texte.
                 if (!StillTracks(addon, offset, entry))
                 {
+                    if (liveNodes.Contains(entry.Node))
+                        Restore((AtkResNode*)entry.Node, entry);
                     stale.Add(offset);
                     continue;
                 }
@@ -159,7 +150,7 @@ internal sealed unsafe class FlyTextNodes : IDisposable
                 // Nœud absent de la liste de l'addon (texte en attente, caché…) : on n'y écrit pas, mais on le garde.
                 var node = LiveNode(addon, offset, entry);
                 if (node != null)
-                    Apply(addon, node, entry, offset);
+                    Apply(node, entry);
             }
 
             foreach (var offset in stale)
@@ -170,7 +161,7 @@ internal sealed unsafe class FlyTextNodes : IDisposable
             blocks.Clear();
     }
 
-    private void Apply(AtkUnitBase* addon, AtkResNode* node, Tracked entry, int offset)
+    private void Apply(AtkResNode* node, Tracked entry)
     {
         // Taille différente de celle qu'on a écrite : le jeu vient de la changer (création, rebond).
         var scale = new Vector2(node->ScaleX, node->ScaleY);
@@ -186,82 +177,89 @@ internal sealed unsafe class FlyTextNodes : IDisposable
         if (entry.Group is not { } group)
             return;
 
+        // Le jeu fait défiler le texte ; quand un texte arrive dans son bloc, il le pousse en plus vers le bas. Ce qui
+        // dépasse le défilement habituel est une poussée, retirée de l'affichage si elle vient d'un texte d'un autre
+        // cadre. Le premier mouvement après la création est le placement du texte par le jeu, pas une poussée.
         var block = BlockOf(entry, group);
-        var shift = block is { } separate ? groups.SeparateShift(separate, group) : Vector2.Zero;
         var created = createdBlocks[(int)group];
         var position = new Vector2(node->X, node->Y);
-
-        // Juste créé, le texte est à (0, 0) : le jeu le placera en ajoutant sa position à celle du texte.
-        var gamePosition = position;
-        var cancel = entry.PushToCancel;
-        if (entry.WrittenPosition is { } written)
+        var cancel = 0f;
+        if (entry.Placed)
         {
-            // Place du jeu : le texte a défilé depuis notre place (nos écarts y sont encore), ou le jeu l'a replacé.
-            // Son premier mouvement après la création est son placement par le jeu, qui ajoute sa position à celle du
-            // texte : l'écart posé à la création y est donc déjà (ce n'est pas un replacement). Seul un texte d'un
-            // cadre à part peut trahir un replacement (il quitte la colonne de son cadre).
-            var pushPossible = created.Count > 0 || entry.SeenPush != 0;
-            var replaced = entry.Placed && entry.BlockShift != Vector2.Zero
-                && FlyTextLayout.GameReplacedText(position, written, entry.BlockShift, pushPossible);
-            if (!replaced)
-                gamePosition = position - entry.AppliedShift;
-
-            // Défilement habituel relevé sur les images sans création dans le bloc ; sur les autres, ce qui le
-            // dépasse est une poussée du jeu, à annuler si elle vient d'un texte d'un autre cadre.
-            if (entry.Placed && !replaced)
+            var moved = position.Y - entry.LastPosition.Y;
+            if (created.Count == 0)
             {
-                var moved = position.Y - written.Y;
-                if (created.Count == 0)
+                if (moved >= 0 && moved <= MaxStep)
                     entry.Step = moved;
-                else if (!created.Contains(block))
-                    cancel += FlyTextLayout.UnseenPush(moved, entry.SeenPush, entry.Step);
             }
-
-            if (position != written)
-                entry.Placed = true;
-            Log(addon, replaced ? "Replaced" : "Scrolled", position, entry, cancel);
+            else if (!created.Contains(block))
+            {
+                cancel = FlyTextLayout.GamePush(moved, entry.Step);
+            }
         }
 
+        entry.Placed |= position != entry.LastPosition;
+        entry.LastPosition = position;
         entry.Cancelled -= cancel;
-        entry.SeenPush = 0;
-        entry.PushToCancel = 0;
-        entry.BlockShift = shift;
 
-        var wanted = gamePosition + entry.AppliedShift;
-        if (position != wanted)
-            node->SetPositionFloat(wanted.X, wanted.Y);
-        entry.WrittenPosition = wanted;
+        var shift = block is { } separate ? groups.SeparateShift(separate, group) : Vector2.Zero;
+        MoveContents(entry, shift + new Vector2(0, entry.Cancelled), wantedScale);
+        Log(position, entry, cancel);
+    }
+
+    // Décale le contenu du texte (en pixels à l'écran). Il est dessiné à l'échelle du nœud du texte : l'écart y est
+    // donc divisé par sa taille. Un contenu que le jeu a replacé reprend sa nouvelle place, plus l'écart.
+    private static void MoveContents(Tracked entry, Vector2 shift, Vector2 scale)
+    {
+        var local = new Vector2(scale.X != 0 ? shift.X / scale.X : 0, scale.Y != 0 ? shift.Y / scale.Y : 0);
+        foreach (var content in entry.Contents)
+        {
+            var node = (AtkResNode*)content.Node;
+            var current = new Vector2(node->X, node->Y);
+            if (content.Written != current)
+                content.Game = current;
+
+            // Contenu jamais décalé et rien à décaler : on n'y touche pas.
+            if (content.Written == null && local == Vector2.Zero)
+                continue;
+
+            var wanted = content.Game + local;
+            if (current != wanted)
+                node->SetPositionFloat(wanted.X, wanted.Y);
+            content.Written = wanted;
+        }
     }
 
     // Cadre à part du texte (statuts, autres textes), ou null s'il reste dans le bloc du jeu.
     private PersonalBlock? BlockOf(Tracked entry, FlyTextGroup group) =>
         FlyTextLayout.SeparateBlock(entry.Category, group, configuration.Layout, configuration.SeparateOther);
 
-    // Remet la taille et la place du jeu, si le nœud porte encore nos valeurs.
+    // Remet la taille et la place du jeu, là où le nœud et son contenu portent encore nos valeurs.
     private static void Restore(AtkResNode* node, Tracked entry)
     {
         if (entry.WrittenScale is { } scale && node->ScaleX == scale.X && node->ScaleY == scale.Y)
             node->SetScale(entry.GameScale.X, entry.GameScale.Y);
-        var applied = entry.AppliedShift;
-        if (entry.WrittenPosition is { } position && node->X == position.X && node->Y == position.Y && applied != Vector2.Zero)
-            node->SetPositionFloat(position.X - applied.X, position.Y - applied.Y);
+
+        foreach (var content in entry.Contents)
+        {
+            var contentNode = (AtkResNode*)content.Node;
+            if (content.Written is { } written && contentNode->X == written.X && contentNode->Y == written.Y)
+                contentNode->SetPositionFloat(content.Game.X, content.Game.Y);
+        }
     }
 
-    // Le jeu crée les textes d'un acteur à la fois : on retient lequel pour les textes créés pendant ce temps, et,
-    // sur le personnage, on relève les poussées que causent ces créations.
+    // Le jeu crée les textes d'un acteur à la fois : on retient lequel pour les textes créés pendant ce temps.
     private void OnAddFlyText(
         AddonFlyText* addon, uint actorIndex, uint messageMax, NumberArrayData* numberArrayData, uint offsetNum, uint offsetNumMax,
         StringArrayData* stringArrayData, uint offsetStr, uint offsetStrMax, int unknown)
     {
         currentActor = actorIndex;
-        StartTrace((AtkUnitBase*)addon, actorIndex);
         try
         {
             addHook.Original(addon, actorIndex, messageMax, numberArrayData, offsetNum, offsetNumMax, stringArrayData, offsetStr, offsetStrMax, unknown);
         }
         finally
         {
-            EndTrace((AtkUnitBase*)addon);
             currentActor = null;
         }
     }
@@ -269,19 +267,10 @@ internal sealed unsafe class FlyTextNodes : IDisposable
     private nint OnCreateFlyText(
         AddonFlyText* addon, int kind, int val1, int val2, CStringPointer text2, uint color, uint icon, uint damageTypeIcon, CStringPointer text1, float yOffset)
     {
-        if (trace != null)
-            SafeMeasure((AtkUnitBase*)addon);
-
         var result = createHook.Original(addon, kind, val1, val2, text2, color, icon, damageTypeIcon, text1, yOffset);
         try
         {
-            var entry = Track((AtkUnitBase*)addon, result, kind);
-            if (trace != null)
-            {
-                trace.Created.Add(entry is { Group: { } group } ? (true, BlockOf(entry, group)) : (false, null));
-                if (entry != null)
-                    trace.LastY[entry] = ((AtkResNode*)entry.Node)->Y;
-            }
+            Track((AtkUnitBase*)addon, result, kind);
         }
         catch (Exception e)
         {
@@ -293,7 +282,7 @@ internal sealed unsafe class FlyTextNodes : IDisposable
 
     // Le jeu renvoie la fiche du texte créé, rangée dans l'addon ; son premier champ est le nœud du texte.
     // On ne lit jamais une adresse inconnue : seulement la mémoire de l'addon, et seulement des nœuds de l'addon.
-    private Tracked? Track(AtkUnitBase* addon, nint result, int kind)
+    private void Track(AtkUnitBase* addon, nint result, int kind)
     {
         var offset = (long)(result - (nint)addon);
         var isEntry = result != 0 && offset >= 0 && offset <= sizeof(AddonFlyText) - sizeof(nint);
@@ -306,12 +295,11 @@ internal sealed unsafe class FlyTextNodes : IDisposable
             if (result != 0 && !reportedUnknownResult)
                 Plugin.Log.Warning("Unexpected value returned when creating a flying text: it cannot be adjusted.");
             reportedUnknownResult |= result != 0;
-            return null;
+            return;
         }
 
-        // Même nœud repris pour un nouveau texte alors que nos réglages y sont encore : on remet d'abord les valeurs du jeu.
-        if (tracked.TryGetValue((int)offset, out var previous) && previous.Node == node)
-            Restore((AtkResNode*)node, previous);
+        // Nœud repris pour un nouveau texte alors que nos réglages y sont encore : on remet d'abord les valeurs du jeu.
+        ForgetNode(node);
 
         var entry = new Tracked
         {
@@ -319,100 +307,57 @@ internal sealed unsafe class FlyTextNodes : IDisposable
             Group = FlyTextLayout.PlayerGroup(currentActor),
             Node = node,
         };
+        FindContents((AtkResNode*)node, entry.Contents);
+        tracked[(int)offset] = entry;
+        if (entry.Group is { } group)
+            createdBlocks[(int)group].Add(BlockOf(entry, group));
 #if DEBUG
         entry.Offset = (int)offset;
         var created = (AtkResNode*)node;
-        Plugin.Log.Information("[diag] create kind={Kind} actor={Actor} {Category} block={Block} fiche=addon+{Offset:X} size={W}x{H} scale={S:F2}",
+        Plugin.Log.Information("[diag] create kind={Kind} actor={Actor} {Category} block={Block} fiche=addon+{Offset:X} type={Type} size={W}x{H} scale={S:F2} contents={Contents}",
             kind, currentActor?.ToString() ?? "?", entry.Category,
-            entry.Group is { } logGroup ? BlockOf(entry, logGroup)?.ToString() ?? "game" : "-", offset, created->Width, created->Height, created->ScaleY);
+            entry.Group is { } logGroup ? BlockOf(entry, logGroup)?.ToString() ?? "game" : "-", offset, (int)created->Type,
+            created->Width, created->Height, created->ScaleY, DescribeContents(entry));
 #endif
-        tracked[(int)offset] = entry;
 
-        // Réglé dès sa création : à ce moment le texte est à (0, 0) et le jeu le place ensuite en ajoutant sa
-        // position à celle du texte. Décalé maintenant, il apparaît directement dans son cadre, sans passer une
-        // image dans le bloc du jeu.
-        Apply(addon, (AtkResNode*)node, entry, (int)offset);
-        return entry;
+        // Réglé dès sa création : le contenu apparaît directement dans son cadre, sans passer une image dans le
+        // bloc du jeu.
+        Apply((AtkResNode*)node, entry);
     }
 
-    // Textes du personnage : hauteur de chaque texte de leur bloc avant toute création.
-    private void StartTrace(AtkUnitBase* addon, uint actor)
+    private void ForgetNode(nint node)
     {
-        trace = FlyTextLayout.PlayerGroup(actor) is { } group ? new PushTrace(group) : null;
-        if (trace != null)
-            SafeMeasure(addon);
-    }
-
-    // Fin des créations : chaque poussée relevée est attribuée au texte qui l'a causée. Venue d'un texte d'un autre
-    // cadre, elle sera annulée à la mise à jour suivante.
-    private void EndTrace(AtkUnitBase* addon)
-    {
-        if (trace is not { } current)
-            return;
-
-        try
-        {
-            Measure(addon, current);
-            var pushesBeforeCreating = current.Moves.Any(move => move.Slice == 0);
-            foreach (var (entry, moved, slice) in current.Moves)
-            {
-                entry.SeenPush += moved;
-                var cause = FlyTextLayout.PushCause(slice, current.Created.Count, pushesBeforeCreating);
-                if (cause >= 0 && current.Created[cause] is { Tracked: true } creation && creation.Block != BlockOf(entry, current.Group))
-                    entry.PushToCancel += moved;
-            }
-
-            foreach (var (followed, block) in current.Created)
-            {
-                if (followed)
-                    createdBlocks[(int)current.Group].Add(block);
-            }
-
-            LogTrace(addon, current, pushesBeforeCreating);
-        }
-        catch (Exception e)
-        {
-            Plugin.Log.Error(e, "Could not follow the flying text pushed by a new one.");
-        }
-        finally
-        {
-            trace = null;
-        }
-    }
-
-    private void SafeMeasure(AtkUnitBase* addon)
-    {
-        try
-        {
-            if (trace != null)
-                Measure(addon, trace);
-        }
-        catch (Exception e)
-        {
-            trace = null;
-            Plugin.Log.Error(e, "Could not follow the flying text pushed by a new one.");
-        }
-    }
-
-    // Relève la hauteur des textes du bloc et note ceux qui ont bougé depuis le relevé précédent.
-    private void Measure(AtkUnitBase* addon, PushTrace current)
-    {
-        CollectLiveNodes(addon);
-        var slice = current.Created.Count;
+        stale.Clear();
         foreach (var (offset, entry) in tracked)
         {
-            if (entry.Group != current.Group)
+            if (entry.Node != node)
                 continue;
 
-            var node = LiveNode(addon, offset, entry);
-            if (node == null)
-                continue;
-
-            var y = node->Y;
-            if (current.LastY.TryGetValue(entry, out var last) && y != last)
-                current.Moves.Add((entry, y - last, slice));
-            current.LastY[entry] = y;
+            Restore((AtkResNode*)node, entry);
+            stale.Add(offset);
         }
+
+        foreach (var offset in stale)
+            tracked.Remove(offset);
+    }
+
+    // Contenu d'un texte : le nœud racine de son composant, sinon ses nœuds enfants.
+    private static void FindContents(AtkResNode* node, List<Content> contents)
+    {
+        if (node->Type == NodeType.Component)
+        {
+            var component = ((AtkComponentNode*)node)->Component;
+            if (component != null && component->UldManager.RootNode != null)
+                contents.Add(new Content { Node = (nint)component->UldManager.RootNode });
+            return;
+        }
+
+        // Enfants reliés dans les deux sens à partir du premier : on les parcourt tous, sans jamais boucler.
+        var seen = new HashSet<nint>();
+        for (var child = node->ChildNode; child != null && seen.Count < 32 && seen.Add((nint)child); child = child->PrevSiblingNode)
+            contents.Add(new Content { Node = (nint)child });
+        for (var child = node->ChildNode == null ? null : node->ChildNode->NextSiblingNode; child != null && seen.Count < 32 && seen.Add((nint)child); child = child->NextSiblingNode)
+            contents.Add(new Content { Node = (nint)child });
     }
 
     // Addon détruit (déconnexion…) : ses nœuds n'existent plus.
@@ -448,49 +393,32 @@ internal sealed unsafe class FlyTextNodes : IDisposable
         return false;
     }
 
-    // Relevé (version de développement) : les premières images de chaque texte du personnage, et chaque poussée annulée,
-    // avec le contenu de sa fiche pour trouver où le jeu range sa propre position.
+    // Relevé (version de développement) : les premières images de chaque texte du personnage, et chaque poussée retirée.
     [System.Diagnostics.Conditional("DEBUG")]
-    private static void Log(AtkUnitBase* addon, string phase, Vector2 position, Tracked entry, float cancel)
+    private static void Log(Vector2 position, Tracked entry, float cancel)
     {
 #if DEBUG
-        if (entry.Logged >= 120 || (entry.Logged >= 30 && phase != "Replaced" && cancel == 0))
+        if (entry.Logged >= 120 || (entry.Logged >= 30 && cancel == 0))
             return;
 
         entry.Logged++;
-        Plugin.Log.Information("[diag] node addon+{Offset:X} {Category} {Phase} pos=({X:F1},{Y:F1}) shift=({SX:F0},{SY:F0}) cancelled={Cancelled:F1} cancel={Cancel:F1} seen={Seen:F1} step={Step:F2} fiche=[{Fiche}]",
-            entry.Offset, entry.Category, phase, position.X, position.Y, entry.BlockShift.X, entry.BlockShift.Y,
-            entry.Cancelled, cancel, entry.SeenPush, entry.Step, Fiche(addon, entry.Offset));
-#endif
-    }
-
-    [System.Diagnostics.Conditional("DEBUG")]
-    private static void LogTrace(AtkUnitBase* addon, PushTrace current, bool pushesBeforeCreating)
-    {
-#if DEBUG
-        if (current.Moves.Count == 0)
-            return;
-
-        var created = string.Join(",", current.Created.Select(c => c.Tracked ? c.Block?.ToString() ?? "game" : "?"));
-        var moves = string.Join(" ", current.Moves.Select(m => $"s{m.Slice}:{m.Entry.Category}@{m.Entry.Offset:X}{m.Moved:+0.0;-0.0}"));
-        Plugin.Log.Information("[diag] push group={Group} before={Before} created=[{Created}] moves=[{Moves}]",
-            current.Group, pushesBeforeCreating, created, moves);
+        Plugin.Log.Information("[diag] node addon+{Offset:X} {Category} pos=({X:F1},{Y:F1}) step={Step:F2} cancel={Cancel:F1} cancelled={Cancelled:F1} contents={Contents}",
+            entry.Offset, entry.Category, position.X, position.Y, entry.Step, cancel, entry.Cancelled, DescribeContents(entry));
 #endif
     }
 
 #if DEBUG
-    // Fiche du texte vue comme des nombres à virgule (après le pointeur du nœud), pour la mise au point.
-    private static string Fiche(AtkUnitBase* addon, int offset)
+    private static string DescribeContents(Tracked entry)
     {
-        const int size = 0x50;
-        if (offset < 0 || offset + size > sizeof(AddonFlyText))
-            return string.Empty;
-
-        var values = (float*)((byte*)addon + offset);
         var text = new System.Text.StringBuilder();
-        for (var i = 2; i < size / sizeof(float); i++)
-            text.Append(values[i].ToString("0.#")).Append(' ');
-        return text.ToString().TrimEnd();
+        foreach (var content in entry.Contents)
+        {
+            var node = (AtkResNode*)content.Node;
+            text.Append($"[t{(int)node->Type} ({node->X:F1},{node->Y:F1}) game=({content.Game.X:F1},{content.Game.Y:F1})");
+            text.Append(content.Written is { } written ? $" written=({written.X:F1},{written.Y:F1})]" : "]");
+        }
+
+        return text.ToString();
     }
 #endif
 }

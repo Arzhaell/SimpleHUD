@@ -263,36 +263,13 @@ public class FlyTextLayoutTests
         Assert.Equal(0.6f, other.Y, 4);
     }
 
-    [Theory]
-    // Le jeu pousse après avoir créé : la tranche k vient de la création k − 1, rien avant la première.
-    [InlineData(0, 2, false, -1)]
-    [InlineData(1, 2, false, 0)]
-    [InlineData(2, 2, false, 1)]
-    // Le jeu pousse avant de créer : la tranche k vient de la création k, rien après la dernière.
-    [InlineData(0, 2, true, 0)]
-    [InlineData(1, 2, true, 1)]
-    [InlineData(2, 2, true, -1)]
-    public void PushesComeFromTheRightCreation(int slice, int creations, bool before, int expected)
-    {
-        Assert.Equal(expected, FlyTextLayout.PushCause(slice, creations, before));
-    }
-
     [Fact]
-    public void UnseenPushIsWhatExceedsTheUsualScroll()
+    public void APushIsWhatExceedsTheUsualScroll()
     {
-        // Relevé en jeu : un statut qui défilait de 1,3 px par image saute de 657 à 718 à l'arrivée d'un dégât.
-        Assert.Equal(61f - 1.3f, FlyTextLayout.UnseenPush(61f, 0f, 1.3f), 3);
-        Assert.Equal(0f, FlyTextLayout.UnseenPush(61f, 59.7f, 1.3f));
-        Assert.Equal(0f, FlyTextLayout.UnseenPush(2.5f, 0f, 1.3f));
-    }
-
-    [Fact]
-    public void APushIsNotAReplacement()
-    {
-        var shift = new Vector2(0, -150);
-
-        Assert.False(FlyTextLayout.GameReplacedText(new Vector2(1283, 600), new Vector2(1283, 450), shift, pushPossible: true));
-        Assert.True(FlyTextLayout.GameReplacedText(new Vector2(1283, 1152), new Vector2(1620, 1010), new Vector2(337, -143), pushPossible: true));
+        // Relevé en jeu : un statut qui défilait de 1,35 px par image saute de 755,7 à 928,3 à l'arrivée d'un dégât.
+        Assert.Equal(171.25f, FlyTextLayout.GamePush(928.3f - 755.7f, 1.35f), 2);
+        Assert.Equal(0f, FlyTextLayout.GamePush(2.5f, 1.35f));
+        Assert.Equal(0f, FlyTextLayout.GamePush(-3f, 1.35f));
     }
 
     [Fact]
@@ -328,29 +305,6 @@ public class FlyTextLayoutTests
 
         Assert.Equal(new Vector2(800, 470), min);
         Assert.Equal(new Vector2(500, 60), frameSize);
-    }
-
-    [Fact]
-    public void ScrollingKeepsTheShift()
-    {
-        // Relevé en jeu : le texte décalé à (1620, 627) a défilé de 2 vers le bas, sans changer de X.
-        Assert.False(FlyTextLayout.GameReplacedText(new Vector2(1620, 629), new Vector2(1620, 627), new Vector2(337, -143)));
-    }
-
-    [Fact]
-    public void ReplacingPutsTheTextBackInTheGameColumn()
-    {
-        // Relevé en jeu : réempilé d'un coup, le texte revient dans la colonne du jeu (X = 1283).
-        Assert.True(FlyTextLayout.GameReplacedText(new Vector2(1283, 1152), new Vector2(1620, 1010), new Vector2(337, -143)));
-    }
-
-    [Fact]
-    public void PurelyVerticalShiftUsesTheJump()
-    {
-        var shift = new Vector2(0, -150);
-
-        Assert.False(FlyTextLayout.GameReplacedText(new Vector2(1283, 452), new Vector2(1283, 450), shift));
-        Assert.True(FlyTextLayout.GameReplacedText(new Vector2(1283, 600), new Vector2(1283, 450), shift));
     }
 
     [Fact]
