@@ -63,6 +63,9 @@ internal sealed unsafe class ShieldTexts : IDisposable
     private readonly Dictionary<uint, string> spellsByStatus = [];
     private readonly Dictionary<uint, string> statusNames = [];
 
+    // Noms des sorts des joueurs (feuille Action du jeu), lus au premier bouclier.
+    private HashSet<string>? spellNames;
+
     // Effets d'action reçus par le personnage (numéro d'ordre du serveur) et moment où ils sont apparus ; le plus récent
     // vu, et le dernier attribué à un bouclier. Null : liste pas encore lue (les effets déjà là sont anciens).
     private readonly Dictionary<uint, DateTime> effectsSeen = [];
@@ -183,7 +186,12 @@ internal sealed unsafe class ShieldTexts : IDisposable
                 spellsByStatus[status] = found.Name;
         }
 
-        var name = FlyTextLayout.ShieldName(spell?.Name, fresh, spellsByStatus, statusNames);
+        spellNames ??= Plugin.DataManager.GetExcelSheet<LuminaAction>()
+            .Where(action => action.IsPlayerAction)
+            .Select(action => action.Name.ExtractText())
+            .Where(name => name.Length > 0)
+            .ToHashSet();
+        var name = FlyTextLayout.ShieldName(spell?.Name, fresh, spellsByStatus, statusNames, spellNames);
 #if DEBUG
         Plugin.Log.Information("[diag] shield name={Name} spell={Spell} fresh=[{Fresh}]", name ?? "-", spell?.Name ?? "-",
             string.Join(" ", fresh.Select(id => $"{id}:{statusNames.GetValueOrDefault(id)}")));

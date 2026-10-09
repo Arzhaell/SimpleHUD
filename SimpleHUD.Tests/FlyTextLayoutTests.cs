@@ -315,19 +315,33 @@ public class FlyTextLayoutTests
     [Fact]
     public void ShieldIsNamedAfterTheSpellThatGaveIt()
     {
-        var statusNames = new Dictionary<uint, string> { [2612] = "Haima", [2642] = "Haimatinon", [297] = "Galvanisation", [1918] = "Catalyse" };
-        var spells = new Dictionary<uint, string> { [2612] = "Haima", [2642] = "Haima" };
+        // Numéros et noms relevés en jeu (Haima, Panhaima, Holos) ; Galvanisation et Catalyse pour l'exemple.
+        var statusNames = new Dictionary<uint, string>
+        {
+            [2612] = "Haima", [2642] = "Haimatinon", [2613] = "Panhaima", [2643] = "Panhaimatinon",
+            [3365] = "Holos", [3003] = "Holos", [297] = "Galvanisation", [1918] = "Catalyse",
+        };
+        var spellNames = new HashSet<string> { "Haima", "Panhaima", "Holos", "Traité du réconfort" };
+        var learned = new Dictionary<uint, string> { [297] = "Traité du réconfort" };
+        var none = new Dictionary<uint, string>();
 
         // Sort lancé sur toi : son nom, même si l'effet porte un autre nom (Traité du réconfort → Galvanisation).
-        Assert.Equal("Traité du réconfort", FlyTextLayout.ShieldName("Traité du réconfort", [297, 1918], spells, statusNames));
+        Assert.Equal("Traité du réconfort", FlyTextLayout.ShieldName("Traité du réconfort", [297, 1918], none, statusNames, spellNames));
 
-        // Bouclier de Haima renouvelé seul : aucun sort, mais l'effet renouvelé vient de Haima.
-        Assert.Equal("Haima", FlyTextLayout.ShieldName(null, [2642], spells, statusNames));
+        // Effet déjà vu venir d'un sort : le nom de ce sort.
+        Assert.Equal("Traité du réconfort", FlyTextLayout.ShieldName(null, [297], learned, statusNames, spellNames));
 
-        // Effet inconnu reçu seul : son nom ; plusieurs effets inconnus, ou aucun : pas de nom.
-        Assert.Equal("Galvanisation", FlyTextLayout.ShieldName(null, [297], spells, statusNames));
-        Assert.Null(FlyTextLayout.ShieldName(null, [297, 1918], spells, statusNames));
-        Assert.Null(FlyTextLayout.ShieldName("", [], spells, statusNames));
+        // Relevé en jeu : Haima et Panhaima lancés sur soi ne sont pas gardés par le jeu, et donnent deux effets à la fois.
+        Assert.Equal("Haima", FlyTextLayout.ShieldName(null, [2642, 2612], none, statusNames, spellNames));
+        Assert.Equal("Panhaima", FlyTextLayout.ShieldName(null, [2643, 2613], none, statusNames, spellNames));
+
+        // Deux effets du même nom (Holos) : ce nom ; un seul effet : son nom.
+        Assert.Equal("Holos", FlyTextLayout.ShieldName(null, [3365, 3003], none, statusNames, spellNames));
+        Assert.Equal("Galvanisation", FlyTextLayout.ShieldName(null, [297], none, statusNames, spellNames));
+
+        // Plusieurs effets dont aucun n'est un sort, ou aucun effet : pas de nom.
+        Assert.Null(FlyTextLayout.ShieldName(null, [297, 1918], none, statusNames, spellNames));
+        Assert.Null(FlyTextLayout.ShieldName("", [], none, statusNames, spellNames));
     }
 
     [Fact]

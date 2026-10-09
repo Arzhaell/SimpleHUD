@@ -338,11 +338,13 @@ internal static class FlyTextLayout
 
     /// <summary>
     /// Nom à donner à un bouclier : le sort qui vient de te donner un effet ; sinon, pour un bouclier qui se renouvelle
-    /// seul (Haima…), le sort déjà vu donner l'un des effets reçus à l'instant ; sinon l'effet reçu à l'instant, s'il est
-    /// seul ; sinon null (le plugin écrit alors « Bouclier »).
+    /// seul, le sort déjà vu donner l'un des effets reçus à l'instant ; sinon le nom des effets reçus à l'instant s'ils
+    /// n'en ont qu'un, ou celui d'entre eux qui est aussi le nom d'un sort (constaté en jeu : Haima lancé sur soi n'est
+    /// pas gardé par le jeu, et donne à la fois « Haima » et « Haimatinon ») ; sinon null (« Bouclier »).
     /// </summary>
     public static string? ShieldName(string? spell, IReadOnlyList<uint> freshStatuses,
-        IReadOnlyDictionary<uint, string> spellsByStatus, IReadOnlyDictionary<uint, string> statusNames)
+        IReadOnlyDictionary<uint, string> spellsByStatus, IReadOnlyDictionary<uint, string> statusNames,
+        IReadOnlySet<string> spellNames)
     {
         if (!string.IsNullOrEmpty(spell))
             return spell;
@@ -353,7 +355,18 @@ internal static class FlyTextLayout
                 return known;
         }
 
-        return freshStatuses.Count == 1 && statusNames.TryGetValue(freshStatuses[0], out var name) && name.Length > 0 ? name : null;
+        var names = new List<string>();
+        foreach (var status in freshStatuses)
+        {
+            if (statusNames.TryGetValue(status, out var name) && name.Length > 0 && !names.Contains(name))
+                names.Add(name);
+        }
+
+        if (names.Count == 1)
+            return names[0];
+
+        var spells = names.FindAll(spellNames.Contains);
+        return spells.Count == 1 ? spells[0] : null;
     }
 
     /// <summary>Taille réglable : de 50 % à 200 % de celle du jeu.</summary>
