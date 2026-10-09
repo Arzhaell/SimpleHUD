@@ -33,6 +33,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly TestTexts testTexts = new();
     private readonly FlyTextNodes nodes;
     private readonly FlyTextHider hider;
+    private readonly ShieldTexts shields;
     private readonly HudEditorOverlay hudOverlay;
 
     // La fenêtre s'ouvre avec l'éditeur d'ATH (pour les réglages au pixel) et se referme avec lui.
@@ -52,6 +53,7 @@ public sealed class Plugin : IDalamudPlugin
         Groups = new FlyTextGroups(Configuration);
         nodes = new FlyTextNodes(Configuration, Groups);
         hider = new FlyTextHider(Configuration, nodes);
+        shields = new ShieldTexts(Configuration, nodes);
 
         configWindow = new ConfigWindow(this);
         overlay = new PlacementOverlay(this);
@@ -250,6 +252,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenConfigUi -= configWindow.Toggle;
         PluginInterface.UiBuilder.OpenMainUi -= configWindow.Toggle;
         windowSystem.RemoveAllWindows();
+        shields.Dispose();
         hider.Dispose();
         hudOverlay.Dispose();
         Hud.Dispose();
@@ -296,6 +299,16 @@ public sealed class Plugin : IDalamudPlugin
         testTexts.ShowOnPlayer(groups.Length == 0 ? FlyTextLayout.Groups : groups);
         if (groups.Length == 0)
             ShowOtherTestTexts();
+        if (groups.Length == 0 || groups.Contains(FlyTextGroup.Healing))
+            shields.ShowTest();
+    }
+
+    /// <summary>Affiche ou non la valeur des boucliers avec les soins ; cochée, un bouclier de test défile.</summary>
+    public void SetShowShields(bool show)
+    {
+        Configuration.ShowShields = show;
+        Configuration.Save();
+        shields.ShowTest();
     }
 
     /// <summary>Fait défiler sur le personnage des autres textes (EXP).</summary>

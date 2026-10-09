@@ -46,6 +46,9 @@ public class Configuration : IPluginConfiguration
     public float DamageDealtScale { get; set; } = 1f;
     public float OtherScale { get; set; } = 1f;
 
+    /// <summary>Affiche avec les soins la valeur (approchée) des boucliers reçus.</summary>
+    public bool ShowShields { get; set; }
+
     /// <summary>Dans l'éditeur d'ATH, position de tous les éléments, et pas seulement de celui sous la souris.</summary>
     public bool ShowAllHudPositions { get; set; }
 

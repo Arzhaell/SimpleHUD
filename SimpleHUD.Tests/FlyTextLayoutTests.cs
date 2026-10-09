@@ -297,6 +297,22 @@ public class FlyTextLayoutTests
     }
 
     [Fact]
+    public void ShieldGainIsApproximatedFromThePercentage()
+    {
+        // Le jeu donne le bouclier en pourcentage des PV max : 18 % de 102 431 PV ≈ 18 400.
+        Assert.Equal(18400, FlyTextLayout.ShieldGain(0, 18, 102431));
+        Assert.Equal(5100, FlyTextLayout.ShieldGain(10, 15, 102431));
+
+        // Petits PV : un pour cent fait moins d'une centaine, on garde la valeur.
+        Assert.Equal(40, FlyTextLayout.ShieldGain(0, 1, 4000));
+
+        // Bouclier qui baisse (dégâts absorbés) ou PV inconnus : rien à afficher.
+        Assert.Null(FlyTextLayout.ShieldGain(18, 12, 102431));
+        Assert.Null(FlyTextLayout.ShieldGain(12, 12, 102431));
+        Assert.Null(FlyTextLayout.ShieldGain(0, 10, 0));
+    }
+
+    [Fact]
     public void APushIsWhatExceedsTheUsualScroll()
     {
         // Relevé en jeu : un statut qui défilait de 1,35 px par image saute de 755,7 à 928,3 à l'arrivée d'un dégât.

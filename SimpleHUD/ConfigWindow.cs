@@ -89,6 +89,7 @@ internal sealed class ConfigWindow : Window
 
         Section(Loc.T("Display and size", "Affichage et taille"));
         DrawScales();
+        DrawShields();
 
         ImGui.Spacing();
         ImGui.Spacing();
@@ -242,6 +243,21 @@ internal sealed class ConfigWindow : Window
         }
 
         ImGui.EndTable();
+    }
+
+    // Valeur des boucliers reçus, avec les soins (même taille, même case Afficher).
+    private void DrawShields()
+    {
+        var show = plugin.Configuration.ShowShields;
+        if (ImGui.Checkbox(Loc.T("Show shield values with healing", "Afficher la valeur des boucliers avec les soins"), ref show))
+            plugin.SetShowShields(show);
+
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip(Loc.T(
+                "The game only gives shields as a share of your max HP: the value is rounded to 1%.",
+                "Le jeu ne donne le bouclier qu'en part de tes PV max : la valeur est arrondie à 1 % près."));
+        }
     }
 
     // Ligne du tableau : nom puis X et Y en pixels (boutons − / + au pixel, Ctrl+clic par 10).

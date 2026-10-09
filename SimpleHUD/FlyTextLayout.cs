@@ -322,6 +322,20 @@ internal static class FlyTextLayout
         _ => FlyTextCategory.Other,
     };
 
+    /// <summary>
+    /// Valeur approchée d'un bouclier qui vient d'être reçu, ou null si le bouclier n'a pas augmenté. Le jeu ne donne le
+    /// bouclier qu'en pourcentage des PV max (au pour cent près) : la valeur est arrondie à la centaine.
+    /// </summary>
+    public static int? ShieldGain(byte before, byte after, uint maxHp)
+    {
+        if (after <= before || maxHp == 0)
+            return null;
+
+        var amount = (after - before) * (double)maxHp / 100;
+        var rounded = (int)(Math.Round(amount / 100, MidpointRounding.AwayFromZero) * 100);
+        return rounded > 0 ? rounded : (int)Math.Ceiling(amount);
+    }
+
     /// <summary>Taille réglable : de 50 % à 200 % de celle du jeu.</summary>
     public static float ClampScale(float scale) => float.IsFinite(scale) ? Math.Clamp(scale, 0.5f, 2f) : 1f;
 

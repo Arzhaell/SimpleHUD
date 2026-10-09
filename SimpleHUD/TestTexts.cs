@@ -15,7 +15,7 @@ namespace SimpleHUD;
 internal sealed unsafe class TestTexts
 {
     // Feuille Action du jeu : 7541 = Second souffle (soin), 53 = Volée de coups (attaque).
-    private const uint HealingActionId = 7541;
+    internal const uint HealingActionId = 7541;
     private const uint AttackActionId = 53;
 
     // Type d'identifiant « action » dans le journal d'écran.
@@ -124,15 +124,25 @@ internal sealed unsafe class TestTexts
         if (character == null)
             return;
 
+        var target = recipient == Recipient.Player ? ScreenLogRelationKind.LocalPlayer : ScreenLogRelationKind.Enemy;
+        AddScreenLog(character, sample.Kind, sample.Source, target, sample.Value, sample.ActionId);
+    }
+
+    /// <summary>
+    /// Ajoute un texte au journal d'écran d'un personnage, comme le fait le combat : le jeu le range lui-même dans le bon
+    /// groupe et le met en forme. À appeler sur le fil du jeu.
+    /// </summary>
+    public static void AddScreenLog(IBattleChara character, FlyTextKind kind, ScreenLogRelationKind source, ScreenLogRelationKind target, int value, uint actionId)
+    {
         var entry = new ScreenLogEntry
         {
-            ScreenLogKind = (int)sample.Kind,
-            SourceRelation = sample.Source,
-            TargetRelation = recipient == Recipient.Player ? ScreenLogRelationKind.LocalPlayer : ScreenLogRelationKind.Enemy,
+            ScreenLogKind = (int)kind,
+            SourceRelation = source,
+            TargetRelation = target,
             Option = (byte)ScreenLogOption.Default,
             ActionKind = ActionKind,
-            ActionId = sample.ActionId,
-            Value1 = sample.Value,
+            ActionId = actionId,
+            Value1 = value,
             Value3 = 1,
         };
 
