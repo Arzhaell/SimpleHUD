@@ -41,9 +41,12 @@ Anciennement « Flying Text Modifier » (jusqu'à la version 1.1.0).
 - **Afficher / taille** : pour les buffs / débuffs, les soins (PM récupérés compris), les dégâts subis (sur toi),
   les dégâts infligés (sur tes cibles) et les autres textes (EXP, objets…), la fenêtre permet de les masquer ou de
   régler leur taille, de 50 % à 200 % de la taille du jeu. Le rebond des critiques est gardé.
+- **Valeur des boucliers** (case à cocher) : quand ton bouclier augmente, sa valeur défile en jaune avec les soins
+  (même taille, même case Afficher). Le jeu ne donne le bouclier qu'en part de tes PV max : la valeur est approchée,
+  à 1 % de tes PV près.
 - **Tester tous les textes** fait défiler sur ton personnage tous les types de textes : soins, soins critiques,
   statuts bénéfiques et néfastes gagnés puis perdus (de vrais statuts du jeu, tirés au hasard à chaque essai),
-  dégâts, critiques, coups directs, auto-attaques, esquives, EXP, PM…
+  dégâts, critiques, coups directs, auto-attaques, esquives, EXP, PM, et un bouclier si la case est cochée.
 - `/simplehud` ouvre la fenêtre hors de l'éditeur d'ATH ; les cadres s'affichent tant qu'elle est ouverte.
 
 ### ATH du jeu au pixel

@@ -40,9 +40,12 @@ Formerly "Flying Text Modifier" (up to version 1.1.0).
 - **Display and size**: for buffs / debuffs, healing (MP recovered included), damage taken (on you), damage dealt (on
   your targets) and other texts (EXP, items…), the window lets you hide them or set their size, from 50% to 200% of
   the game's size. The critical hit bounce is kept.
+- **Shield values** (checkbox): when your shield goes up, its value scrolls in yellow with healing (same size, same
+  Show checkbox). The game only gives shields as a share of your max HP: the value is approximate, to within 1% of
+  your HP.
 - **Test all texts** scrolls every kind of text over your character: healing, critical healing, beneficial and
   detrimental status effects gained then lost (real game status effects, picked at random on each try), damage,
-  critical hits, direct hits, auto-attacks, misses, EXP, MP…
+  critical hits, direct hits, auto-attacks, misses, EXP, MP, and a shield if the box is ticked.
 - `/simplehud` opens the window outside the HUD layout editor; the frames show while it is open.
 
 ### Game HUD to the pixel
