@@ -1,4 +1,4 @@
 <Solution>
-  <Project Path="FlyingTextModifier/FlyingTextModifier.csproj" />
-  <Project Path="FlyingTextModifier.Tests/FlyingTextModifier.Tests.csproj" />
+  <Project Path="SimpleHUD/SimpleHUD.csproj" />
+  <Project Path="SimpleHUD.Tests/SimpleHUD.Tests.csproj" />
 </Solution>

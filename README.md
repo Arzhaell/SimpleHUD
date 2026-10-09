@@ -1,8 +1,10 @@
-# Flying Text Modifier
+# Simple HUD
 
-Plugin [Dalamud](https://github.com/goatcorp/Dalamud) pour Final Fantasy XIV : déplace les **textes défilants**
-affichés sur ton personnage, directement depuis la **configuration de l'ATH**, et y règle au pixel près tous les
-éléments de l'ATH du jeu.
+Plugin [Dalamud](https://github.com/goatcorp/Dalamud) pour Final Fantasy XIV : des réglages simples de l'affichage,
+directement depuis la **configuration de l'ATH**. Il déplace les **textes défilants** affichés sur ton personnage
+et règle au pixel près tous les **éléments de l'ATH** du jeu.
+
+Anciennement « Flying Text Modifier » (jusqu'à la version 1.1.0).
 
 ## Utilisation
 - Ouvre la configuration de l'ATH : les cadres « Texte défilant » apparaissent par-dessus l'éditeur, avec la
@@ -20,7 +22,8 @@ affichés sur ton personnage, directement depuis la **configuration de l'ATH**, 
   (le cercle marque la cible, ou ton personnage s'il n'y en a pas).
 - Fais glisser un cadre (Maj enfoncée : déplacement fin) : le point jaune marque l'endroit où le jeu place les
   textes. Au lâcher, des textes de test défilent à la nouvelle place.
-- Au pixel près : la fenêtre du plugin donne X et Y de chaque cadre, avec des boutons − / + (Ctrl+clic : par 10).
+- Au pixel près : l'onglet « Textes défilants » de la fenêtre du plugin donne X et Y de chaque cadre, avec des
+  boutons − / + (Ctrl+clic : par 10).
 - Clic droit sur un cadre, ou bouton ↺ : retour à la position d'origine du jeu.
 - **Afficher / taille** : pour les buffs / débuffs, les soins, les dégâts (sur toi comme sur la cible) et les
   autres textes (EXP, PM…), la fenêtre permet de les masquer ou de régler leur taille, de 50 % à 200 % de la
@@ -28,7 +31,7 @@ affichés sur ton personnage, directement depuis la **configuration de l'ATH**, 
 - **Tester tous les textes** fait défiler sur ton personnage tous les types de textes : soins, soins critiques,
   statuts bénéfiques et néfastes gagnés puis perdus (de vrais statuts du jeu, tirés au hasard à chaque essai),
   dégâts, critiques, coups directs, auto-attaques, esquives…
-- `/flytextmod` ouvre la fenêtre hors de l'éditeur d'ATH ; les cadres s'affichent tant qu'elle est ouverte.
+- `/simplehud` ouvre la fenêtre hors de l'éditeur d'ATH ; les cadres s'affichent tant qu'elle est ouverte.
 
 ### ATH du jeu au pixel
 - Dans la configuration de l'ATH, survole un élément (barres de raccourcis, équipe, cible, boussole…, y compris
@@ -46,10 +49,10 @@ Le regroupement des textes est imposé par le jeu. Pour décaler les textes sur 
 le calque des textes défilants et compense la position des deux groupes du personnage.
 
 ## Compiler et tester
-- `dotnet test FlyingTextModifier.Tests` : tests de la logique (recherche en mémoire, conversions, réglages).
-- `dotnet build FlyingTextModifier -c Release` : la DLL de `FlyingTextModifier\bin\Release\` est celle que Dalamud
-  charge comme plugin de développement (rechargée toute seule, même jeu ouvert).
-- La version Debug (`dotnet build FlyingTextModifier`) note en plus dans le journal de Dalamud (lignes `[diag]`)
+- `dotnet test SimpleHUD.Tests` : tests de la logique (recherche en mémoire, conversions, réglages).
+- `dotnet build SimpleHUD -c Release` : la DLL de `SimpleHUD\bin\Release\` est celle que Dalamud charge comme
+  plugin de développement (rechargée toute seule, même jeu ouvert).
+- La version Debug (`dotnet build SimpleHUD`) note en plus dans le journal de Dalamud (lignes `[diag]`)
   l'état des groupes et de chaque texte, pour la mise au point. Elle écrit beaucoup : à ne charger que pour étudier.
 
 Projet local, non publié.

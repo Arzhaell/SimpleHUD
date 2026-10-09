@@ -6,11 +6,11 @@ using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 
-namespace FlyingTextModifier;
+namespace SimpleHUD;
 
 public sealed class Plugin : IDalamudPlugin
 {
-    private const string CommandName = "/flytextmod";
+    private const string CommandName = "/simplehud";
 
     // Écran de l'éditeur d'ATH (« Configuration de l'ATH »), affiché tant que l'éditeur est ouvert.
     internal const string HudLayoutAddonName = "_HudLayoutScreen";
@@ -27,7 +27,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IFlyTextGui FlyTextGui { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
 
-    private readonly WindowSystem windowSystem = new("FlyingTextModifier");
+    private readonly WindowSystem windowSystem = new("SimpleHUD");
     private readonly ConfigWindow configWindow;
     private readonly PlacementOverlay overlay;
     private readonly TestTexts testTexts = new();

@@ -2,7 +2,7 @@ using System.Buffers.Binary;
 using System.Numerics;
 using Newtonsoft.Json;
 
-namespace FlyingTextModifier.Tests;
+namespace SimpleHUD.Tests;
 
 public class FlyTextLayoutTests
 {

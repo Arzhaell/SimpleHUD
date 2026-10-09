@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using Dalamud.Configuration;
 
-namespace FlyingTextModifier;
+namespace SimpleHUD;
 
 [Serializable]
 public class Configuration : IPluginConfiguration

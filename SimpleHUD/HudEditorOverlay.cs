@@ -6,7 +6,7 @@ using Dalamud.Interface.GameFonts;
 using Dalamud.Interface.ManagedFontAtlas;
 using Dalamud.Interface.Utility;
 
-namespace FlyingTextModifier;
+namespace SimpleHUD;
 
 /// <summary>
 /// Dans l'éditeur d'ATH du jeu : la position de l'élément survolé (de tous, si on le demande), et sous l'élément
@@ -103,7 +103,7 @@ internal sealed class HudEditorOverlay : IDisposable
         ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 1.5f * scale);
         ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 6f * scale);
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10f, 8f) * scale);
-        if (ImGui.Begin("##FlyingTextModifierHudPanel", PanelFlags))
+        if (ImGui.Begin("##SimpleHUDHudPanel", PanelFlags))
         {
             ImGui.TextColored(PlacementOverlay.Accent, frame.Name);
 

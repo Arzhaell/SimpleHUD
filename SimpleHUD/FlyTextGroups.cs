@@ -7,7 +7,7 @@ using FFXIVClientStructs.FFXIV.Client.Graphics.Kernel;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 
-namespace FlyingTextModifier;
+namespace SimpleHUD;
 
 /// <summary>
 /// Applique dans le jeu les positions choisies :

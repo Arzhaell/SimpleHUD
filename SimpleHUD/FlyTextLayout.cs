@@ -2,7 +2,7 @@ using System;
 using System.Buffers.Binary;
 using System.Numerics;
 
-namespace FlyingTextModifier;
+namespace SimpleHUD;
 
 /// <summary>Groupes de textes défilants affichés sur le personnage. Le jeu décide quel texte va dans quel groupe.</summary>
 public enum FlyTextGroup

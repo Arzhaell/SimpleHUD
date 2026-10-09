@@ -9,7 +9,7 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 
-namespace FlyingTextModifier;
+namespace SimpleHUD;
 
 /// <summary>
 /// Version de développement seulement : note dans le journal de Dalamud (lignes « [hud] ») ce que fait l'éditeur

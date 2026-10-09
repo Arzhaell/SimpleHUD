@@ -6,7 +6,7 @@ using Dalamud.Game.Gui.FlyText;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 
-namespace FlyingTextModifier;
+namespace SimpleHUD;
 
 /// <summary>
 /// Faux textes de test, créés comme ceux du combat (journal d'écran du personnage) : le jeu les range lui-même dans le

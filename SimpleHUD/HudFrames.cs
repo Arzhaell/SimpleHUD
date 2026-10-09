@@ -7,7 +7,7 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using Lumina.Text.ReadOnly;
 
-namespace FlyingTextModifier;
+namespace SimpleHUD;
 
 /// <summary>Cadre d'un élément dans l'éditeur d'ATH du jeu : le nom que le jeu y écrit et sa place à l'écran, en pixels.</summary>
 internal readonly record struct HudFrame(string Name, int X, int Y, int Width, int Height, bool Selected);

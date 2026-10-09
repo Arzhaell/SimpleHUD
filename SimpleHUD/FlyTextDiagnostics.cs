@@ -7,7 +7,7 @@ using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 
-namespace FlyingTextModifier;
+namespace SimpleHUD;
 
 /// <summary>
 /// Version de développement seulement : note dans le journal de Dalamud l'état des 10 groupes de textes

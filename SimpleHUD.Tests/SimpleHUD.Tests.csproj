@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FlyingTextModifier\FlyingTextModifier.csproj" />
+    <ProjectReference Include="..\SimpleHUD\SimpleHUD.csproj" />
     <!-- Le plugin ne copie pas Dalamud à côté de sa DLL (le jeu le fournit) : les tests en ont besoin. -->
     <Reference Include="Dalamud" HintPath="$(DalamudLibPath)Dalamud.dll" />
     <Reference Include="Newtonsoft.Json" HintPath="$(DalamudLibPath)Newtonsoft.Json.dll" />

@@ -7,14 +7,14 @@ using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 
-namespace FlyingTextModifier;
+namespace SimpleHUD;
 
 internal sealed class ConfigWindow : Window
 {
     private readonly Plugin plugin;
 
     public ConfigWindow(Plugin plugin)
-        : base("Flying Text Modifier###FlyingTextModifierConfig", ImGuiWindowFlags.AlwaysAutoResize)
+        : base("Simple HUD###SimpleHUDConfig", ImGuiWindowFlags.AlwaysAutoResize)
     {
         this.plugin = plugin;
     }

@@ -1,6 +1,6 @@
 using System;
 
-namespace FlyingTextModifier;
+namespace SimpleHUD;
 
 public enum PluginLanguage
 {

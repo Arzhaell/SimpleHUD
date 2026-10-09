@@ -2,7 +2,7 @@ using System;
 using Dalamud.Game.Gui.FlyText;
 using Dalamud.Game.Text.SeStringHandling;
 
-namespace FlyingTextModifier;
+namespace SimpleHUD;
 
 /// <summary>Empêche d'apparaître les familles de textes masquées (outil prévu par Dalamud pour ça).</summary>
 internal sealed class FlyTextHider : IDisposable

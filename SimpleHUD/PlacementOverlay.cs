@@ -2,7 +2,7 @@ using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 
-namespace FlyingTextModifier;
+namespace SimpleHUD;
 
 /// <summary>Cadres « Texte défilant » à faire glisser, dessinés par-dessus l'éditeur d'ATH du jeu.</summary>
 internal sealed class PlacementOverlay

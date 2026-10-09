@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace FlyingTextModifier.Tests;
+namespace SimpleHUD.Tests;
 
 public class HudLayoutTests
 {

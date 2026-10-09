@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
-namespace FlyingTextModifier;
+namespace SimpleHUD;
 
 /// <summary>
 /// Rangement des éléments de l'ATH dans les dispositions du jeu, et placement des étiquettes dans l'éditeur.
