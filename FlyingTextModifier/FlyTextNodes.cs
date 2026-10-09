@@ -55,6 +55,9 @@ internal sealed unsafe class FlyTextNodes : IDisposable
         public Vector2? WrittenPosition;
         public Vector2 AppliedShift;
 
+        // Vrai une fois que le jeu a placé le texte (son premier mouvement après la création).
+        public bool Placed;
+
 #if DEBUG
         // Relevé : nombre de lignes déjà notées pour ce texte.
         public int Logged;
@@ -145,8 +148,13 @@ internal sealed unsafe class FlyTextNodes : IDisposable
             return;
 
         // Place du jeu : le texte a défilé depuis notre place (le décalage y est encore), ou le jeu l'a replacé.
+        // Son premier mouvement après la création est son placement par le jeu, qui ajoute sa position à celle du
+        // texte : le décalage posé à la création y est donc déjà (ce n'est pas un replacement).
         var position = new Vector2(node->X, node->Y);
-        var replaced = entry.WrittenPosition is not { } written || FlyTextLayout.GameReplacedText(position, written, entry.AppliedShift);
+        var replaced = entry.WrittenPosition is not { } written
+            || (entry.Placed && FlyTextLayout.GameReplacedText(position, written, entry.AppliedShift));
+        if (entry.WrittenPosition is { } previous && position != previous)
+            entry.Placed = true;
         var gamePosition = replaced ? position : position - entry.AppliedShift;
         Log(replaced ? "Replaced" : "Scrolled", offset, position, entry);
 
@@ -221,14 +229,18 @@ internal sealed unsafe class FlyTextNodes : IDisposable
         if (tracked.TryGetValue((int)offset, out var previous) && previous.Node == node)
             Restore((AtkResNode*)node, previous);
 
-        // Pas encore réglé : à sa création le texte n'a pas de place (0, 0) et le jeu le place ensuite à partir de sa
-        // position actuelle ; un décalage posé maintenant serait gardé par le jeu puis ajouté une seconde fois.
-        tracked[(int)offset] = new Tracked
+        var entry = new Tracked
         {
             Category = FlyTextLayout.Categorize(kind),
             Actor = currentActor,
             Node = node,
         };
+        tracked[(int)offset] = entry;
+
+        // Réglé dès sa création : à ce moment le texte est à (0, 0) et le jeu le place ensuite en ajoutant sa
+        // position à celle du texte. Décalé maintenant, il apparaît directement dans son bloc, sans passer une
+        // image dans celui du jeu.
+        Apply((AtkResNode*)node, entry, groups.StatusShift(), (int)offset);
     }
 
     // Addon détruit (déconnexion…) : ses nœuds n'existent plus.
