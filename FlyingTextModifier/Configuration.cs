@@ -18,5 +18,11 @@ public class Configuration : IPluginConfiguration
     /// </summary>
     public Dictionary<FlyTextGroup, Vector2> Positions { get; set; } = new();
 
+    /// <summary>
+    /// Décalage des textes affichés sur la cible, en fraction de l'écran (peut être négatif).
+    /// Ces textes suivent toujours la cible : seul l'écart avec elle change.
+    /// </summary>
+    public Vector2 TargetOffset { get; set; } = Vector2.Zero;
+
     public void Save() => Plugin.PluginInterface.SavePluginConfig(this);
 }

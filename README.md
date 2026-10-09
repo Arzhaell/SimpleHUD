@@ -4,20 +4,26 @@ Plugin [Dalamud](https://github.com/goatcorp/Dalamud) pour Final Fantasy XIV : d
 affichés sur ton personnage, directement depuis la **configuration de l'ATH**.
 
 ## Utilisation
-- Ouvre la configuration de l'ATH : deux cadres « Texte défilant » apparaissent par-dessus l'éditeur.
-  - **Soins reçus** : tous les soins reçus, soins sur la durée compris.
-  - **Statuts / dégâts subis** : effets de statut gagnés ou perdus et dégâts subis.
-- Fais glisser un cadre : le point jaune marque l'endroit où le jeu place les textes. Au lâcher, un texte de
-  test apparaît à la nouvelle place.
-- Clic droit sur un cadre : retour à la position d'origine du jeu.
-- `/flytextmod` ouvre une petite fenêtre (Tester, Tout réinitialiser, langue). Les cadres s'affichent aussi tant
-  qu'elle est ouverte.
+- Ouvre la configuration de l'ATH : trois cadres « Texte défilant » apparaissent par-dessus l'éditeur, avec la
+  fenêtre du plugin.
+  - **Soins reçus** : tous les soins reçus, soins sur la durée compris (position fixe à l'écran).
+  - **Statuts / dégâts subis** : effets de statut gagnés ou perdus et dégâts subis (position fixe à l'écran).
+  - **Sur la cible** : tes coups sur la cible. Ces textes suivent toujours la cible ; on règle l'écart avec elle
+    (le cercle marque la cible, ou ton personnage s'il n'y en a pas).
+- Fais glisser un cadre (Maj enfoncée : déplacement fin) : le point jaune marque l'endroit où le jeu place les
+  textes. Au lâcher, des textes de test défilent à la nouvelle place.
+- Au pixel près : la fenêtre du plugin donne X et Y de chaque cadre, avec des boutons − / + (Ctrl+clic : par 10).
+- Clic droit sur un cadre, ou bouton ↺ : retour à la position d'origine du jeu.
+- **Tester tous les textes** fait défiler sur ton personnage tous les types de textes : soins, soins critiques,
+  statuts bénéfiques et néfastes gagnés puis perdus (de vrais statuts du jeu, tirés au hasard à chaque essai),
+  dégâts, critiques, coups directs, auto-attaques, esquives…
+- `/flytextmod` ouvre la fenêtre hors de l'éditeur d'ATH ; les cadres s'affichent tant qu'elle est ouverte.
 
 Les positions sont enregistrées en proportion de l'écran : elles suivent un changement de résolution.
 Quand le plugin est désactivé, les textes reprennent leur place d'origine.
 
-Le regroupement des textes est imposé par le jeu. Les textes au-dessus des cibles ne sont pas concernés : ils
-suivent la cible dans le décor.
+Le regroupement des textes est imposé par le jeu. Pour décaler les textes sur la cible, le plugin déplace tout
+le calque des textes défilants et compense la position des deux groupes du personnage.
 
 ## Compiler et tester
 - `dotnet test FlyingTextModifier.Tests` : tests de la logique (recherche en mémoire, conversions, réglages).

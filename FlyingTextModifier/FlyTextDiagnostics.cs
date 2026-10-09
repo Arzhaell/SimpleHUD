@@ -61,7 +61,10 @@ internal sealed unsafe class FlyTextDiagnostics : IDisposable
         var targetOnScreen = target != null && Plugin.GameGui.WorldToScreen(target.Position, out var screen)
             ? $"({screen.X:F0},{screen.Y:F0})"
             : "none";
-        Plugin.Log.Information("[diag] target={Target}{Groups}", targetOnScreen, line);
+        // Position du calque (décalé pour les textes sur la cible) et de l'addon.
+        var root = addon->RootNode;
+        var layer = root == null ? "none" : $"({root->X:F0},{root->Y:F0}) addon=({addon->X},{addon->Y}) scale={addon->Scale:F2}";
+        Plugin.Log.Information("[diag] target={Target} layer={Layer}{Groups}", targetOnScreen, layer, line);
     }
 }
 #endif

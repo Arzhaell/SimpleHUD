@@ -106,9 +106,40 @@ public class FlyTextLayoutTests
     }
 
     [Fact]
+    public void TargetOffsetCanBeNegativeButStaysWithinTheScreen()
+    {
+        var screen = new Vector2(2560, 1440);
+
+        Assert.Equal(new Vector2(-256f, 144f), FlyTextLayout.OffsetToPixels(new Vector2(-0.1f, 0.1f), screen));
+        Assert.Equal(new Vector2(-1f, 1f), FlyTextLayout.ClampOffset(new Vector2(-3f, 2f)));
+    }
+
+    [Fact]
+    public void ShowsWholePixels()
+    {
+        Assert.Equal((1254, 720), FlyTextLayout.ToWholePixels(new Vector2(0.49f, 0.5f), new Vector2(2560, 1440)));
+        Assert.Equal((-120, 40), FlyTextLayout.ToWholePixels(new Vector2(-120f / 2560, 40f / 1440), new Vector2(2560, 1440)));
+    }
+
+    [Fact]
+    public void FineDragIsSlowerThanTheMouse()
+    {
+        var mouse = new Vector2(8, -4);
+
+        Assert.Equal(mouse, FlyTextLayout.DragDelta(mouse, fine: false));
+        Assert.Equal(new Vector2(2, -1), FlyTextLayout.DragDelta(mouse, fine: true));
+    }
+
+    [Fact]
+    public void TargetFrameIsCenteredOnItsAnchor()
+    {
+        Assert.Equal(new Vector2(900, 470), FlyTextLayout.CenteredFrameMin(new Vector2(1000, 500), new Vector2(200, 60)));
+    }
+
+    [Fact]
     public void SavedPositionsSurviveTheConfigurationFile()
     {
-        var configuration = new Configuration { Language = PluginLanguage.French };
+        var configuration = new Configuration { Language = PluginLanguage.French, TargetOffset = new Vector2(-0.05f, 0.02f) };
         configuration.Positions[FlyTextGroup.StatusDamage] = new Vector2(0.7f, 0.35f);
 
         // Dalamud enregistre la configuration avec Newtonsoft.Json, types compris.
@@ -118,5 +149,6 @@ public class FlyTextLayoutTests
         Assert.Equal(PluginLanguage.French, reloaded.Language);
         Assert.Equal(new Vector2(0.7f, 0.35f), reloaded.Positions[FlyTextGroup.StatusDamage]);
         Assert.False(reloaded.Positions.ContainsKey(FlyTextGroup.Healing));
+        Assert.Equal(new Vector2(-0.05f, 0.02f), reloaded.TargetOffset);
     }
 }

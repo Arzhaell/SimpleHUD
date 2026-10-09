@@ -1,6 +1,6 @@
 using System.Linq;
+using System.Numerics;
 using Dalamud.Game.Command;
-using Dalamud.Game.Gui.FlyText;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
@@ -15,9 +15,6 @@ public sealed class Plugin : IDalamudPlugin
     // Écran de l'éditeur d'ATH (« Configuration de l'ATH »), affiché tant que l'éditeur est ouvert.
     private const string HudLayoutAddonName = "_HudLayoutScreen";
 
-    // Couleur des textes de test (blanc opaque, quel que soit l'ordre des composantes attendu par le jeu).
-    private const uint TestTextColor = 0xFFFFFFFF;
-
     [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
     [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
@@ -25,11 +22,18 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IFlyTextGui FlyTextGui { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
     [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
+    [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
+    [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
 
     private readonly WindowSystem windowSystem = new("FlyingTextModifier");
     private readonly ConfigWindow configWindow;
     private readonly PlacementOverlay overlay;
+    private readonly TestTexts testTexts = new();
+
+    // La fenêtre s'ouvre avec l'éditeur d'ATH (pour les réglages au pixel) et se referme avec lui.
+    private bool hudLayoutWasOpen;
+    private bool openedWithHudLayout;
 #if DEBUG
     private readonly FlyTextDiagnostics diagnostics = new();
 #endif
@@ -56,7 +60,7 @@ public sealed class Plugin : IDalamudPlugin
     internal FlyTextGroups Groups { get; }
 
     /// <summary>Les cadres sont affichés dans l'éditeur d'ATH, et tant que la fenêtre du plugin est ouverte.</summary>
-    public bool IsPlacing => configWindow.IsOpen || GameGui.GetAddonByName(HudLayoutAddonName).IsVisible;
+    public bool IsPlacing => configWindow.IsOpen || hudLayoutWasOpen;
 
     public static bool IsFlyTextFilterLoaded => PluginInterface.InstalledPlugins.Any(p => p.IsLoaded && p.InternalName == "FlyTextFilter");
 
@@ -98,32 +102,27 @@ public sealed class Plugin : IDalamudPlugin
     {
         Groups.Reset(group);
         Configuration.Save();
-        ShowTestText(group);
+        ShowTestTexts(group);
+    }
+
+    public void ResetTarget()
+    {
+        Groups.TargetOffset = Vector2.Zero;
+        Configuration.Save();
     }
 
     public void ResetAll()
     {
         foreach (var group in FlyTextLayout.Groups)
             Groups.Reset(group);
+        Groups.TargetOffset = Vector2.Zero;
         Configuration.Save();
         ShowTestTexts();
     }
 
-    public void ShowTestTexts()
-    {
-        foreach (var group in FlyTextLayout.Groups)
-            ShowTestText(group);
-    }
-
-    /// <summary>Fait apparaître sur le personnage un faux texte du groupe, pour voir où il s'affiche.</summary>
-    public void ShowTestText(FlyTextGroup group) => Framework.RunOnFrameworkThread(() =>
-    {
-        // Acteur 1 = le personnage du joueur.
-        if (group == FlyTextGroup.Healing)
-            FlyTextGui.AddFlyText(FlyTextKind.Healing, 1, 1234, 0, Loc.T("Test", "Test"), string.Empty, TestTextColor, 0, 0);
-        else
-            FlyTextGui.AddFlyText(FlyTextKind.Buff, 1, 0, 0, Loc.T("Status effect (test)", "Effet de statut (test)"), string.Empty, TestTextColor, 0, 0);
-    });
+    /// <summary>Fait défiler sur le personnage tous les types de textes des groupes donnés (tous si aucun).</summary>
+    public void ShowTestTexts(params FlyTextGroup[] groups) =>
+        testTexts.Show(groups.Length == 0 ? FlyTextLayout.Groups : groups);
 
     public void SetLanguage(PluginLanguage language)
     {
@@ -134,8 +133,28 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnDraw()
     {
+        FollowHudLayout();
         windowSystem.Draw();
         overlay.Draw();
+    }
+
+    private void FollowHudLayout()
+    {
+        var open = GameGui.GetAddonByName(HudLayoutAddonName).IsVisible;
+        if (open == hudLayoutWasOpen)
+            return;
+        hudLayoutWasOpen = open;
+
+        if (open && !configWindow.IsOpen)
+        {
+            configWindow.IsOpen = true;
+            openedWithHudLayout = true;
+        }
+        else if (!open && openedWithHudLayout)
+        {
+            configWindow.IsOpen = false;
+            openedWithHudLayout = false;
+        }
     }
 
     private void OnDalamudLanguageChanged(string languageCode)

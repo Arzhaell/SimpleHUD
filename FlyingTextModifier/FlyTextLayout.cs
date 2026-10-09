@@ -92,6 +92,19 @@ internal static class FlyTextLayout
 
     public static Vector2 Clamp(Vector2 ratio) => Vector2.Clamp(ratio, Vector2.Zero, Vector2.One);
 
+    /// <summary>Un décalage peut être négatif, mais jamais plus grand que l'écran.</summary>
+    public static Vector2 ClampOffset(Vector2 ratio) => Vector2.Clamp(ratio, -Vector2.One, Vector2.One);
+
+    /// <summary>Décalage en fraction de l'écran → pixels.</summary>
+    public static Vector2 OffsetToPixels(Vector2 ratio, Vector2 screen) => ClampOffset(ratio) * screen;
+
+    /// <summary>Valeur affichée et saisie dans la fenêtre : pixels entiers.</summary>
+    public static (int X, int Y) ToWholePixels(Vector2 ratio, Vector2 screen) =>
+        ((int)MathF.Round(ratio.X * screen.X), (int)MathF.Round(ratio.Y * screen.Y));
+
+    /// <summary>Glissé fin (Maj enfoncée) : le cadre avance quatre fois moins vite que la souris.</summary>
+    public static Vector2 DragDelta(Vector2 mouseDelta, bool fine) => fine ? mouseDelta * 0.25f : mouseDelta;
+
     /// <summary>
     /// Coin haut-gauche du cadre affiché dans l'éditeur, à partir du point d'ancrage des textes.
     /// Par défaut le jeu met les soins juste à gauche du personnage et les statuts/dégâts à droite :
@@ -100,6 +113,9 @@ internal static class FlyTextLayout
     public static Vector2 FrameMin(FlyTextGroup group, Vector2 anchor, Vector2 size) => group == FlyTextGroup.Healing
         ? new Vector2(anchor.X - size.X, anchor.Y - (size.Y / 2))
         : new Vector2(anchor.X, anchor.Y - (size.Y / 2));
+
+    /// <summary>Le cadre des textes sur la cible est centré sur son point d'ancrage.</summary>
+    public static Vector2 CenteredFrameMin(Vector2 anchor, Vector2 size) => anchor - (size / 2);
 
     private static bool IsPlausible(float value) => float.IsFinite(value) && value > -MaxCoordinate && value < MaxCoordinate;
 }
