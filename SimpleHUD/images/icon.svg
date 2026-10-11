@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Icône de Simple HUD : cadres d'ATH (équipe, boussole, barre de raccourcis sélectionnée). -->
+  <defs>
+    <radialGradient id="fond" cx="50%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#2a4174"/>
+      <stop offset="100%" stop-color="#16213f"/>
+    </radialGradient>
+  </defs>
+  <rect x="14" y="14" width="484" height="484" rx="100" fill="url(#fond)" stroke="#8c7d45" stroke-width="14"/>
+  <rect x="84" y="118" width="104" height="200" rx="14" fill="#2b4170" stroke="#a9bce0" stroke-width="7"/>
+  <rect x="104" y="144" width="64" height="16" rx="8" fill="#7ee08a"/>
+  <rect x="104" y="190" width="64" height="16" rx="8" fill="#7ee08a"/>
+  <rect x="104" y="236" width="64" height="16" rx="8" fill="#7ee08a"/>
+  <rect x="104" y="282" width="40" height="16" rx="8" fill="#7ee08a"/>
+  <circle cx="372" cy="160" r="58" fill="#2b4170" stroke="#a9bce0" stroke-width="7"/>
+  <path d="M372 126 L388 172 L372 163 L356 172 Z" fill="#f2c14e"/>
+  <rect x="148" y="350" width="284" height="74" rx="12" fill="#2b4170" stroke="#f2c14e" stroke-width="8"/>
+  <rect x="166" y="367" width="40" height="40" rx="7" fill="#4a6aa8"/>
+  <rect x="220" y="367" width="40" height="40" rx="7" fill="#4a6aa8"/>
+  <rect x="274" y="367" width="40" height="40" rx="7" fill="#4a6aa8"/>
+  <rect x="328" y="367" width="40" height="40" rx="7" fill="#4a6aa8"/>
+  <rect x="382" y="367" width="34" height="40" rx="7" fill="#4a6aa8"/>
+  <rect x="136" y="338" width="24" height="24" rx="4" fill="#f2c14e"/>
+  <rect x="420" y="338" width="24" height="24" rx="4" fill="#f2c14e"/>
+  <rect x="136" y="412" width="24" height="24" rx="4" fill="#f2c14e"/>
+  <rect x="420" y="412" width="24" height="24" rx="4" fill="#f2c14e"/>
+</svg>

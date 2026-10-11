@@ -8,5 +8,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="SimpleHUD.Tests" />
+    <!-- Dalamud affiche images/icon.png (à côté de la DLL) comme icône du plugin de dev ; le dépôt la lit par IconUrl. -->
+    <None Include="images\icon.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
