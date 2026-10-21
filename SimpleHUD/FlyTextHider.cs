@@ -24,6 +24,14 @@ internal sealed class FlyTextHider : IDisposable
         ref FlyTextKind kind, ref int val1, ref int val2, ref SeString text1, ref SeString text2,
         ref uint color, ref uint icon, ref uint damageTypeIcon, ref float yOffset, ref bool handled)
     {
+#if DEBUG
+        // Relevé : ce que le jeu demande d'afficher (type, valeurs, textes, icône), pour les textes sur le personnage.
+        if (FlyTextLayout.PlayerGroup(nodes.CurrentActor) != null)
+        {
+            Plugin.Log.Information("[diag] created kind={Kind}({KindNumber}) actor={Actor} val1={Val1} val2={Val2} text1=\"{Text1}\" text2=\"{Text2}\" icon={Icon} color={Color:X8}",
+                kind, (int)kind, nodes.CurrentActor?.ToString() ?? "?", val1, val2, text1.TextValue, text2.TextValue, icon, color);
+        }
+#endif
         if (configuration.IsHidden(FlyTextLayout.Categorize((int)kind, nodes.CurrentActor)))
             handled = true;
     }

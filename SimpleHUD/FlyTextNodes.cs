@@ -439,10 +439,11 @@ internal sealed unsafe class FlyTextNodes : IDisposable
         tracked[(int)offset] = entry;
 #if DEBUG
         entry.Offset = (int)offset;
-        Plugin.Log.Information("[diag] create kind={Kind} actor={Actor} {Category} block={Block} fiche=addon+{Offset:X} model={Model} size={W}x{H} contents={Contents}",
+        Plugin.Log.Information("[diag] create kind={Kind} actor={Actor} {Category} block={Block} fiche=addon+{Offset:X} model={Model} size={W}x{H} contents={Contents} {Parts}",
             kind, currentActor?.ToString() ?? "?", entry.Category,
             entry.Group is { } logGroup ? BlockOf(entry, logGroup)?.ToString() ?? "game" : "-", offset, entry.Model,
-            created->Width, created->Height, entry.Contents.Count);
+            created->Width, created->Height, entry.Contents.Count,
+            entry.Category is FlyTextCategory.Status or FlyTextCategory.Other ? DescribeComponent(created) : string.Empty);
 #endif
 
         // Réglé dès sa création : le contenu apparaît directement dans son cadre, sans passer une image dans le
@@ -538,11 +539,45 @@ internal sealed unsafe class FlyTextNodes : IDisposable
             return;
 
         entry.Logged++;
-        Plugin.Log.Information("[diag] node addon+{Offset:X} {Category} {Block} y={Y:F1} moved={Moved:F2} step={Step:F2} display={Display} shift=({SX:F1},{SY:F1}) arrived={Arrived}",
+
+        // Statuts et textes inconnus : contenu du composant (nom affiché ou non) à quelques images de leur vie.
+        var parts = entry.Category is FlyTextCategory.Status or FlyTextCategory.Other && entry.Logged is 1 or 3 or 10 or 30
+            ? DescribeComponent((AtkResNode*)entry.Node)
+            : string.Empty;
+        Plugin.Log.Information("[diag] node addon+{Offset:X} {Category} {Block} y={Y:F1} moved={Moved:F2} step={Step:F2} display={Display} shift=({SX:F1},{SY:F1}) arrived={Arrived} {Parts}",
             entry.Offset, entry.Category, entry.Block?.ToString() ?? "game", entry.NaturalY, entry.Moved, entry.Step,
-            entry.Display?.ToString("F1") ?? "-", shift.X, shift.Y, entry.Arrived);
+            entry.Display?.ToString("F1") ?? "-", shift.X, shift.Y, entry.Arrived, parts);
 #endif
     }
+
+#if DEBUG
+    // Nœuds du composant d'un texte : type, visible ou non, opacité, place, taille, et texte des nœuds de texte.
+    private static string DescribeComponent(AtkResNode* node)
+    {
+        if (!IsComponent(node))
+            return $"type={(int)node->Type}";
+
+        var component = ((AtkComponentNode*)node)->Component;
+        if (component == null)
+            return "component=null";
+
+        var text = new System.Text.StringBuilder($"visible={node->IsVisible()} alpha={node->Color.A} parts=");
+        var manager = &component->UldManager;
+        for (var i = 0; i < manager->NodeListCount && i < 12; i++)
+        {
+            var part = manager->NodeList[i];
+            if (part == null)
+                continue;
+
+            text.Append($"[{i}:t{(int)part->Type}{(part->IsVisible() ? string.Empty : " hidden")} a{part->Color.A} ({part->X:F0},{part->Y:F0}) {part->Width}x{part->Height}");
+            if (part->Type == NodeType.Text)
+                text.Append($" \"{((AtkTextNode*)part)->NodeText}\"");
+            text.Append(']');
+        }
+
+        return text.ToString();
+    }
+#endif
 
     // Relevé (version de développement) : chaque empilement d'un cadre à l'arrivée de textes.
     [System.Diagnostics.Conditional("DEBUG")]
