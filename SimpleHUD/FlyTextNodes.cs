@@ -259,7 +259,10 @@ internal sealed unsafe class FlyTextNodes : IDisposable
 
         // Écarts mesurés sur l'empilement du jeu (gardés par modèle pour les fois où ils ne se voient pas), et point de
         // départ du texte du haut, qui n'a pas été poussé.
-        var measured = FlyTextLayout.MeasuredGaps(arrivals.Select(entry => entry.NaturalY).ToArray(), pushedBelow);
+        var measured = FlyTextLayout.MeasuredGaps(
+            arrivals.Select(entry => entry.NaturalY).ToArray(),
+            pushedBelow,
+            arrivals.Select(entry => entry.Height * ScaleY(entry)).ToArray());
         for (var i = 0; i < arrivals.Count; i++)
         {
             if (measured[i] is { } gap && ScaleY(arrivals[i]) > 0)

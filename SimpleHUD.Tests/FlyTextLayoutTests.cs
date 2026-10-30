@@ -273,11 +273,27 @@ public class FlyTextLayoutTests
     public void GapsAreMeasuredOnTheGameStack()
     {
         // Relevé en jeu : EXP et statut arrivés ensemble ; l'EXP (plus récente) en haut à 908,3, le statut dessous à 952,3.
-        Assert.Equal([44f, null], FlyTextLayout.MeasuredGaps([908.3f, 952.3f], null).Select(gap => gap is { } g ? MathF.Round(g, 1) : (float?)null));
+        Assert.Equal([44f, null], FlyTextLayout.MeasuredGaps([908.3f, 952.3f], null, [55f, 36.8f]).Select(gap => gap is { } g ? MathF.Round(g, 1) : (float?)null));
 
-        // Relevé en jeu : un dégât arrivé seul à 908,3 a poussé les plus anciens textes juste dessous, à 928,3.
-        Assert.Equal(20f, FlyTextLayout.MeasuredGaps([908.3f], 928.3f)[0]!.Value, 3);
-        Assert.Null(FlyTextLayout.MeasuredGaps([908.3f], null)[0]);
+        // Relevé en jeu : un dégât (hauteur 63, à 50 %) arrivé seul à 908,3 a poussé les plus anciens textes juste dessous, à 928,3.
+        Assert.Equal(20f, FlyTextLayout.MeasuredGaps([908.3f], 928.3f, [31.5f])[0]!.Value, 3);
+        Assert.Null(FlyTextLayout.MeasuredGaps([908.3f], null, [31.5f])[0]);
+    }
+
+    [Fact]
+    public void AGapTooBigOrTooSmallIsNotAStack()
+    {
+        // Relevé en jeu : une image plus longue passe pour une poussée, et le texte suivant est loin dessous (statut à 115 %).
+        Assert.Null(FlyTextLayout.MeasuredGaps([916.4f], 916.4f + 284.2f, [36.8f])[0]);
+
+        // Relevé en jeu : deux textes arrivés à 1,4 px l'un de l'autre ne sont pas empilés ; le suivant, si (25 px).
+        var gaps = FlyTextLayout.MeasuredGaps([916.4f, 917.8f, 942.8f], null, [36.8f, 36.8f, 36.8f]);
+        Assert.Null(gaps[0]);
+        Assert.Equal(25f, gaps[1]!.Value, 2);
+
+        // Tous les écarts sains du journal passent : statut 25 / 36,8, soin 41,2 / 55, grand dégât 60 / 74, dégât 18 / 29,4.
+        foreach (var (gap, height) in new[] { (25f, 36.8f), (41.2f, 55f), (60f, 74f), (18f, 29.4f) })
+            Assert.NotNull(FlyTextLayout.MeasuredGaps([900f], 900f + gap, [height])[0]);
     }
 
     [Fact]

@@ -270,20 +270,25 @@ internal static class FlyTextLayout
     /// Écart que chaque texte arrivé pendant une image laisse sous lui, mesuré sur l'empilement du jeu. Constaté en jeu :
     /// les textes arrivés ensemble sont empilés du plus récent (en haut) au plus ancien, chacun juste sous le précédent ;
     /// les plus anciens textes du bloc, s'ils ont été poussés, viennent juste sous le dernier. <paramref name="arrivals"/>
-    /// : hauteur des textes arrivés, de haut en bas. Null là où l'écart ne se voit pas (dernier texte, rien poussé).
+    /// : place des textes arrivés, de haut en bas ; <paramref name="heights"/> : leur hauteur à l'écran. Null là où l'écart
+    /// ne se voit pas (dernier texte, rien poussé), ou s'il n'a pas la taille d'un empilement. Constaté en jeu : une image
+    /// plus longue passe pour une poussée, alors que le texte suivant est loin dessous (écarts de 284 à 363 px relevés).
     /// </summary>
-    public static float?[] MeasuredGaps(IReadOnlyList<float> arrivals, float? pushedBelow)
+    public static float?[] MeasuredGaps(IReadOnlyList<float> arrivals, float? pushedBelow, IReadOnlyList<float> heights)
     {
         var gaps = new float?[arrivals.Count];
         for (var i = 0; i < arrivals.Count; i++)
         {
             var next = i + 1 < arrivals.Count ? arrivals[i + 1] : pushedBelow;
-            if (next is { } below && below > arrivals[i])
+            if (next is { } below && IsStackingGap(below - arrivals[i], heights[i]))
                 gaps[i] = below - arrivals[i];
         }
 
         return gaps;
     }
+
+    // Relevé en jeu : un texte laisse sous lui de 61 % à 81 % de sa hauteur, selon son modèle.
+    private static bool IsStackingGap(float gap, float height) => gap >= height / 4 && gap <= height;
 
     /// <summary>
     /// Empile les textes d'un cadre arrivés pendant une image, comme le ferait le jeu si le cadre était seul : le plus
