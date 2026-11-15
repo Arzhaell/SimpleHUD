@@ -12,9 +12,11 @@ Anciennement « Flying Text Modifier » (jusqu'à la version 1.1.0).
 1. En jeu, tape `/xlsettings` et ouvre l'onglet **Expérimental**.
 2. Dans **Custom Plugin Repositories**, ajoute cette adresse, clique sur **+**, coche la case puis enregistre :
    ```
-   https://raw.githubusercontent.com/Arzhaell/SimpleHUD/main/repo.json
+   https://raw.githubusercontent.com/Arzhaell/ArzhaelXIVPlugins/main/repo.json
    ```
 3. Tape `/xlplugins`, cherche **Simple HUD** et installe-le.
+
+Cette adresse donne accès à [tous mes plugins](https://github.com/Arzhaell/ArzhaelXIVPlugins/blob/main/README.fr.md). Si tu avais déjà ajouté l'adresse propre à ce plugin (`https://raw.githubusercontent.com/Arzhaell/SimpleHUD/main/repo.json`), elle marche toujours ; avec les deux, chaque plugin apparaît deux fois ([changer d'adresse](https://github.com/Arzhaell/ArzhaelXIVPlugins/blob/main/README.fr.md#installation)).
 
 ## Utilisation
 - Ouvre la configuration de l'ATH : les cadres « Texte défilant » apparaissent par-dessus l'éditeur, avec la

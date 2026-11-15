@@ -12,9 +12,11 @@ Formerly "Flying Text Modifier" (up to version 1.1.0).
 1. In game, type `/xlsettings` and open the **Experimental** tab.
 2. Under **Custom Plugin Repositories**, paste this URL, click **+**, tick the checkbox and save:
    ```
-   https://raw.githubusercontent.com/Arzhaell/SimpleHUD/main/repo.json
+   https://raw.githubusercontent.com/Arzhaell/ArzhaelXIVPlugins/main/repo.json
    ```
 3. Type `/xlplugins`, search for **Simple HUD** and install it.
+
+This address gives you [all my plugins](https://github.com/Arzhaell/ArzhaelXIVPlugins). If you already added this plugin's own address (`https://raw.githubusercontent.com/Arzhaell/SimpleHUD/main/repo.json`), it keeps working; with both, each plugin is listed twice ([how to switch](https://github.com/Arzhaell/ArzhaelXIVPlugins#installation)).
 
 ## Usage
 - Open the HUD layout editor: "Flying text" frames show up over the editor, along with the plugin window.
